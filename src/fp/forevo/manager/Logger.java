@@ -23,7 +23,6 @@ public class Logger {
 	
 	//private static Conf conf = new Conf();
 	
-
 	/**
 	 * Metoda s³u¿¹ca do po³¹czeñ z baz¹ danych
 	 * @throws ClassNotFoundException
