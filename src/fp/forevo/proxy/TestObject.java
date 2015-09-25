@@ -28,6 +28,8 @@ public class TestObject {
 	public WebDriverWait webDriverWait = null;
 	private String resDir = null;
 	
+	// GLOBAL METHODS
+	
 	public TestObject(MasterScript ms, Window window, XTestObject xTestObject, String resDir) {
 		this.window = window;
 		this.xTestObject = xTestObject;
@@ -43,13 +45,36 @@ public class TestObject {
 		return xTestObject != null;
 	}
 	
-	/** Highlight testObject 
-	 * @throws FindFailed */
+	public Region getRegion() {
+		switch (xTestObject.getDriverName()){
+		case WEB_DRIVER:
+			System.err.println("Currently method getRegion() is not supported in WebDriver");
+		case AUTO_IT:
+			System.err.println("Currently method getRegion() is not supported in AutoIt");		
+		case SIKULI:
+			XImage xImage = getImage();	
+			Pattern pattern = getPattern(xImage);
+			try {
+				if (xImage.isImgRecognition()) {
+					if (MasterScript.isDebugMode()) sikuliHighlight();
+					return window.getRegion().find(pattern);
+				} else {
+					if (MasterScript.isDebugMode()) sikuliHighlight();
+					Match txtArea = window.getRegion().findText(xImage.getOcrText());
+					return new Region(txtArea.x, txtArea.y, txtArea.w, txtArea.h);
+				}				
+			} catch (FindFailed e) {
+				e.printStackTrace();
+			}			
+		}
+		return null;
+	}
+	
 	public boolean highlight() {
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER: return webDriverHighlight();
 		case AUTO_IT: return autoItHighlight();
-		case SIKULI: return sikuliHighlight(getPattern());
+		case SIKULI: return sikuliHighlight();
 		default: return false;
 		}
 	}
@@ -74,15 +99,23 @@ public class TestObject {
 	
 	/** Highlight sikuli testObject 
 	 * @throws FindFailed */
-	protected boolean sikuliHighlight(Pattern pattern) {
+	protected boolean sikuliHighlight() {
+		XImage xImage = getImage();
 		Region winRegion = window.getRegion();
 		if (winRegion != null) {
-			Match match;
-			try {
-				match = winRegion.find(pattern);
-				match.highlight(1);
-				Region point = new Region(match.getTarget().getX(), match.getTarget().getY(), 1, 1);
-				point.highlight(1);
+			try {				
+				Match match = null;
+				if (xImage.isImgRecognition()) {
+					match = winRegion.find(getPattern(xImage));
+					match.highlight(1);
+					Region point = new Region(match.getTarget().getX(), match.getTarget().getY(), 1, 1);
+					point.highlight(1);
+				} else {
+					match = winRegion.findText(xImage.getOcrText());
+					match.highlight(1);
+					Region point = new Region(match.getX() + xImage.getOffsetX() + match.getW()/2, match.getY() + xImage.getOffsetY() + match.getH()/2, 1, 1);
+					point.highlight(1);
+				}				
 			} catch (FindFailed e) {}			
 			return true;
 		} else {
@@ -110,11 +143,24 @@ public class TestObject {
 			MasterScript.autoIt.controlClick(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 			break;
 		case SIKULI:
-			Pattern pattern = getPattern();
+			XImage xImage = getImage();	
+			if (xImage.getOffsetX() == null) xImage.setOffsetX(0);
+			if (xImage.getOffsetY() == null) xImage.setOffsetY(0);
+			
+			Pattern pattern = getPattern(xImage);
 			try {
-				if (MasterScript.isDebugMode()) sikuliHighlight(pattern);
-				window.getRegion().click(pattern);
-			} catch (FindFailed e) {}
+				if (xImage.isImgRecognition()) {
+					if (MasterScript.isDebugMode()) sikuliHighlight();
+					window.getRegion().click(pattern);
+				} else {
+					if (MasterScript.isDebugMode()) sikuliHighlight();
+					Match txtArea = window.getRegion().findText(xImage.getOcrText());
+					Region point = new Region(txtArea.x + xImage.getOffsetX() + txtArea.w/2, txtArea.y + xImage.getOffsetY() + txtArea.h/2, 1, 1);
+					point.click();
+				}				
+			} catch (FindFailed e) {
+				e.printStackTrace();
+			}
 			break;
 		default:
 			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
@@ -131,15 +177,29 @@ public class TestObject {
 			boolean status = MasterScript.autoIt.controlFocus(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 			return status;			
 		case SIKULI:
-			Pattern pattern = getPattern();		
-			Match statusSikuli = window.getRegion().exists(pattern);
-			if(statusSikuli!=null){
-				return true;
-			}else{
-				return false;
-			}										
+			XImage xImage = getImage();
+			Pattern pattern = getPattern(xImage);
+			if (xImage.isImgRecognition()) {
+				return (window.getRegion().exists(pattern) != null);
+			} else {
+				return sikuli_FindText(window.getRegion(), xImage.getOcrText()) != null;
+			}
+												
 		}
 		return false;		
+	}
+	
+	private Match sikuli_FindText(Region region, String text) {
+		return sikuli_FindText(region, text, (double) ms.TIMEOUT);
+	}
+	
+	private Match sikuli_FindText(Region region, String text, Double timeout) {
+		try {
+			return region.findText(text, timeout);
+		} catch (FindFailed e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	public boolean checkVisibility() {
@@ -147,14 +207,13 @@ public class TestObject {
 	}
 	
 	/** Returns Sikuli object pattern */
-	protected Pattern getPattern() {
-		XImage image = getImage();
-		Pattern pattern = new Pattern(resDir + "\\" + image.getFileName());
-		if (image.getSimilarity() != null) {
-			pattern = pattern.similar(image.getSimilarity());
+	protected Pattern getPattern(XImage xImage) {
+		Pattern pattern = new Pattern(resDir + "\\" + xImage.getFileName());
+		if (xImage.getSimilarity() != null) {
+			pattern = pattern.similar(xImage.getSimilarity());
 		}
-		if (image.getOffsetX() != null | image.getOffsetY() != null) {
-			pattern = pattern.targetOffset(image.getOffsetX(), image.getOffsetY());
+		if (xImage.getOffsetX() != null | xImage.getOffsetY() != null) {
+			pattern = pattern.targetOffset(xImage.getOffsetX(), xImage.getOffsetY());
 		}
 		return pattern;
 	}
@@ -190,14 +249,16 @@ public class TestObject {
 		}
 		return true;
 	}
-	private void reportError(String message, BufferedImage image ) throws TafException{
+
+	private void reportError(String message, BufferedImage image) throws TafException {
 		StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
 		StackTraceElement e = stacktrace[2];
 		String methodName = e.getMethodName();
-		if(!TestSettings.isContinueOnError()){
-			throw new TafException(methodName,message,window.screenShot());}else{
+		if (!TestSettings.isContinueOnError()) {
+			throw new TafException(methodName, message, window.screenShot());
+		} else {
 			ms.log.error(methodName, message, image);
-			}
+		}
 	}
 	public boolean waitIfExist() throws TafException {
 		return waitIfExist(MasterScript.TIMEOUT);
@@ -334,7 +395,8 @@ public class TestObject {
 		case AUTO_IT:
 			return MasterScript.autoIt.controlEnable(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 		case SIKULI:
-			Pattern pattern = getPattern();
+			XImage xImage = getImage();
+			Pattern pattern = getPattern(xImage);
 			Region region = window.getRegion();
 			region.waitVanish(pattern);
 			try {
@@ -390,6 +452,7 @@ public class TestObject {
 	protected Region getWindowRegion() {
 		return window.getRegion();
 	}	
+	
 	public BufferedImage screenShot(){
 		
 		Robot robot;

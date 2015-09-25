@@ -1,10 +1,13 @@
 package fp.forevo.proxy;
 
 import org.sikuli.script.FindFailed;
+import org.sikuli.script.Match;
 import org.sikuli.script.Pattern;
+import org.sikuli.script.Region;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TestObjectManager;
+import fp.forevo.xml.map.XImage;
 
 public class TextBox extends TestObject {
 
@@ -18,7 +21,7 @@ public class TextBox extends TestObject {
 	
 	public void setText(String text) {	
 		
-		ms.log.info(xTestObject.getName() + ".setText(" + text + ");");
+		//ms.log.info(xTestObject.getName() + ".setText(" + text + ");");
 		
 		if (MasterScript.isDebugMode()) highlight();
 		
@@ -30,11 +33,20 @@ public class TextBox extends TestObject {
 			MasterScript.autoIt.ControlSetText(window.getXWindow().getTarget(), "", xTestObject.getTarget(), text);
 			break;
 		case SIKULI:
-			Pattern pattern = getPattern();
-			if (MasterScript.isDebugMode()) sikuliHighlight(pattern);
+			XImage xImage = getImage();
+			Pattern pattern = getPattern(xImage);
 			try {
-				window.getRegion().type(pattern, text);
+				Region region = window.getRegion();
+				if (xImage.isImgRecognition()) {
+					region.type(pattern, text);
+				} else {
+					Match m = region.findText(text);
+					Region txtArea = new Region(m.x + xImage.getOffsetX() + m.w/2, m.y + xImage.getOffsetY() + m.h/2, 1, 1);
+					txtArea.click();
+					window.getRegion().type(text);
+				}
 			} catch (FindFailed e) {
+				e.printStackTrace();
 			}
 			break;
 		default:
