@@ -73,7 +73,7 @@ public class Conf {
 	}
 	
 	public static String getLibPath() {
-		return System.getenv("FP_TAF_PATH") + "\\lib";
+		return System.getenv("FP_TAF_PATH") + "\\drivers";
 	}
 	
 	public static String getConfFile() {
