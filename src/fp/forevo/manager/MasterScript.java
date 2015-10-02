@@ -41,6 +41,8 @@ public class MasterScript {
 		initalizeBrowserDrivers();
 		autoIt = new AutoItX();
 		Settings.ActionLogs = false;	// Sikuli logging level
+		Settings.OcrTextRead = true;	// Mo¿liwosc czytania tekstu z regionu
+		Settings.OcrTextSearch = true;	// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
 		data = new DataManager();
 		log = new Logger();
 		baseUrl = "";
@@ -54,6 +56,11 @@ public class MasterScript {
 		return path;
 	}
 	
+	/**
+	 * Run application using AutoIt.
+	 * eg. run("calc.exe");
+	 * @param app
+	 */
 	public static void runApp(String app) {
 		autoIt.run(app);
 	}
@@ -119,13 +126,7 @@ public class MasterScript {
 			e.printStackTrace();
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
+		
 	public static String getTag() {
 		return MasterScript.tag;
 	}

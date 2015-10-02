@@ -3,6 +3,7 @@ package fp.forevo.proxy;
 import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
+import java.util.Iterator;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -39,6 +40,40 @@ public class TestObject {
 	
 	public Window getParentWindow() {
 		return window;
+	}
+	
+	public String getImagePath() {
+		switch (xTestObject.getDriverName()){	
+		case SIKULI:
+			return getImage().getFileName();
+		default:
+			return null;		
+		}
+	}
+	
+	/**
+	 * For <b>Sikuli</b> object only!<br/>
+	 * Find all elements on parent window.
+	 * @return Iterator&lt;Match&gt; or null
+	 */
+	public Iterator<Match> findAll() {
+		switch (xTestObject.getDriverName()){	
+		case SIKULI:
+			XImage xImage = getImage();	
+			Pattern pattern = getPattern(xImage);
+			try {
+				if (xImage.isImgRecognition()) {
+					return window.getRegion().findAll(pattern);
+				} else {
+					if (MasterScript.isDebugMode()) sikuliHighlight();
+					return window.getRegion().findAllText(xImage.getOcrText());
+				}				
+			} catch (FindFailed e) {
+				e.printStackTrace();
+			}
+		default:
+			return null;		
+		}
 	}
 	
 	public boolean isNotNull() {
@@ -223,10 +258,16 @@ public class TestObject {
 		for (XImage img : xTestObject.getImage()) {
 			if (MasterScript.getTag() == null) {
 				return img;
-			} else if (img.getTag().contains(MasterScript.getTag())) {
+			} else if (img.getTag() != null && img.getTag().contains(MasterScript.getTag())) {
 				return img;
 			}
 		}
+		
+		// If we have one img olny it don't need tag
+		if (xTestObject.getImage().size() == 1) {
+			return xTestObject.getImage().get(0);
+		}
+		
 		return null;
 	}
 	
@@ -474,16 +515,25 @@ public class TestObject {
 		case AUTO_IT:
 			return MasterScript.autoIt.controlGetText(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 		case SIKULI:
-			System.err.println("Currently method getText() is not supported in Sikuli");
+			XImage xImage = getImage();	
+			Pattern pattern = getPattern(xImage);
+			try {
+				if (xImage.isImgRecognition()) {
+					return window.getRegion().find(pattern).text();
+				} else {
+					return null;
+				}				
+			} catch (FindFailed e) {
+				e.printStackTrace();
+			}
 		default:
 			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
-			break;		
+			return null;		
 		}
-		return null;
 	}
 	
 	public boolean assertText(String expectedText) throws TafException{
-		String text=getText();
+		String text = getText();
 		if(text.equals(expectedText)){
 			ms.log.info("Found the correct text: \""+text+"\"");
 			return true;

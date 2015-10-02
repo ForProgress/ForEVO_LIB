@@ -40,7 +40,7 @@ public class TextBox extends TestObject {
 				if (xImage.isImgRecognition()) {
 					region.type(pattern, text);
 				} else {
-					Match m = region.findText(text);
+					Match m = region.findText(xImage.getOcrText());
 					Region txtArea = new Region(m.x + xImage.getOffsetX() + m.w/2, m.y + xImage.getOffsetY() + m.h/2, 1, 1);
 					txtArea.click();
 					window.getRegion().type(text);

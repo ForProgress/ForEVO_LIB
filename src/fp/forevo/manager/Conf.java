@@ -44,8 +44,7 @@ public class Conf {
 	public static boolean isDbLog() {
 		if(dbLog==true&&!TestSettings.isProcessStarted()){
 			dbLog=false;
-			System.err.println("Wyniki nie deda zapisywane do bazy danych. Aby poprawnie raportowac wyniki do bazy "
-					+ "danych nalezy na poczatku testu wywolac funkcje logStartTest()");
+			System.err.println("Results will not be writes into database log. In order to saves logs into database add logStartTest() into your script.");
 			return false;
 		}
 		
