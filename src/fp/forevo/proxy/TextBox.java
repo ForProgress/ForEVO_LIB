@@ -20,11 +20,6 @@ public class TextBox extends TestObject {
 	}
 	
 	public void setText(String text) {	
-		
-		//ms.log.info(xTestObject.getName() + ".setText(" + text + ");");
-		
-		if (MasterScript.isDebugMode()) highlight();
-		
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER:
 			MasterScript.browser.findElement(by()).sendKeys(text);

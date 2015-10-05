@@ -29,7 +29,6 @@ public class MasterScript {
 	public static AutoItX autoIt = null;		// Main object to work using AutoIt libraries
 	public static WebDriver browser = null;		// Main object to work using Selenium WebDriver
 	public static String tag = null;			// Tag for searching images using Sikuli libraries
-	protected static boolean debugMode = false; // Running mode. Hightlight object before action on it
 	protected static DataManager data = null;		// Data Manager object
 	public static Logger log = null;		// Logger for test scripts
 	protected static Conf conf = new Conf();			// Configuration object
@@ -40,7 +39,7 @@ public class MasterScript {
 		initalizeAutoIt();	
 		initalizeBrowserDrivers();
 		autoIt = new AutoItX();
-		Settings.ActionLogs = false;	// Sikuli logging level
+		Settings.ActionLogs = true;	// Sikuli logging level
 		Settings.OcrTextRead = true;	// Mo¿liwosc czytania tekstu z regionu
 		Settings.OcrTextSearch = true;	// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
 		data = new DataManager();
@@ -63,14 +62,6 @@ public class MasterScript {
 	 */
 	public static void runApp(String app) {
 		autoIt.run(app);
-	}
-	
-	public static void setDebugMode(boolean debugMode) {
-		MasterScript.debugMode = debugMode;
-	}
-	
-	public static boolean isDebugMode() {
-		return MasterScript.debugMode;
 	}
 	
 	public void initalizeAutoIt() {

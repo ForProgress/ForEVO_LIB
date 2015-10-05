@@ -1,6 +1,7 @@
 package fp.forevo.proxy;
 
 import java.awt.AWTException;
+import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
 import java.util.Iterator;
@@ -65,7 +66,6 @@ public class TestObject {
 				if (xImage.isImgRecognition()) {
 					return window.getRegion().findAll(pattern);
 				} else {
-					if (MasterScript.isDebugMode()) sikuliHighlight();
 					return window.getRegion().findAllText(xImage.getOcrText());
 				}				
 			} catch (FindFailed e) {
@@ -91,12 +91,21 @@ public class TestObject {
 			Pattern pattern = getPattern(xImage);
 			try {
 				if (xImage.isImgRecognition()) {
-					if (MasterScript.isDebugMode()) sikuliHighlight();
-					return window.getRegion().find(pattern);
+					Region objRegion = window.getRegion().find(pattern);
+					if (xImage.getShift() != null) {
+						Rectangle shift = getRectangle(xImage.getShift());
+						return new Region(objRegion.x + shift.x, objRegion.y + shift.y, shift.width, shift.height);
+					} else {
+						return objRegion;
+					}
 				} else {
-					if (MasterScript.isDebugMode()) sikuliHighlight();
 					Match txtArea = window.getRegion().findText(xImage.getOcrText());
-					return new Region(txtArea.x, txtArea.y, txtArea.w, txtArea.h);
+					if (xImage.getShift() != null) {
+						Rectangle shift = getRectangle(xImage.getShift());
+						return new Region(txtArea.x + shift.x, txtArea.y + shift.y, shift.width, shift.height);
+					} else {
+						return new Region(txtArea.getRect());
+					}
 				}				
 			} catch (FindFailed e) {
 				e.printStackTrace();
@@ -105,17 +114,22 @@ public class TestObject {
 		return null;
 	}
 	
-	public boolean highlight() {
+	public void highlight() {
+		highlight(1);
+	}
+	
+	public void highlight(int sec) {
 		switch (xTestObject.getDriverName()) {
-		case WEB_DRIVER: return webDriverHighlight();
-		case AUTO_IT: return autoItHighlight();
-		case SIKULI: return sikuliHighlight();
-		default: return false;
+		case WEB_DRIVER: webDriverHighlight(); break;
+		case AUTO_IT: autoItHighlight(); break;
+		case SIKULI: sikuliHighlight(); break;
+		default: 
+			return;
 		}
 	}
 	
 	/** Highlight webDriver testObject */
-	private boolean webDriverHighlight() {
+	private void webDriverHighlight() {
 		WebElement element = MasterScript.browser.findElement(by());
 		String border  = element.getCssValue("arguments[0].style.border");
 	    if (MasterScript.browser instanceof JavascriptExecutor) {
@@ -123,18 +137,16 @@ public class TestObject {
 	        MasterScript.sleep(1);
 	        ((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].style.border='" + border + "'", element);
 	    }
-	    return true;
 	}
 	
 	/** Highlight autoIt testObject */
-	private boolean autoItHighlight() {
+	private void autoItHighlight() {
 		MasterScript.autoIt.controlFocus(window.getXWindow().getTarget(), "", xTestObject.getTarget());
-		return true;
 	}
 	
 	/** Highlight sikuli testObject 
 	 * @throws FindFailed */
-	protected boolean sikuliHighlight() {
+	protected void sikuliHighlight() {
 		XImage xImage = getImage();
 		Region winRegion = window.getRegion();
 		if (winRegion != null) {
@@ -151,11 +163,10 @@ public class TestObject {
 					Region point = new Region(match.getX() + xImage.getOffsetX() + match.getW()/2, match.getY() + xImage.getOffsetY() + match.getH()/2, 1, 1);
 					point.highlight(1);
 				}				
-			} catch (FindFailed e) {}			
-			return true;
-		} else {
-			return false;
-		}
+			} catch (FindFailed e) {
+				e.printStackTrace();
+			}			
+		} 
 	}
 	
 	/** click at the object 
@@ -164,8 +175,6 @@ public class TestObject {
 	public void click() throws TafException  {		
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER:
-			if (MasterScript.isDebugMode()) webDriverHighlight();
-			
 			waitForVisible();
 			//MasterScript.browser.findElement(by()).click();
 			WebElement element = MasterScript.browser.findElement(by());
@@ -174,7 +183,6 @@ public class TestObject {
 			
 			break;
 		case AUTO_IT:
-			if (MasterScript.isDebugMode()) autoItHighlight();
 			MasterScript.autoIt.controlClick(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 			break;
 		case SIKULI:
@@ -185,10 +193,8 @@ public class TestObject {
 			Pattern pattern = getPattern(xImage);
 			try {
 				if (xImage.isImgRecognition()) {
-					if (MasterScript.isDebugMode()) sikuliHighlight();
 					window.getRegion().click(pattern);
 				} else {
-					if (MasterScript.isDebugMode()) sikuliHighlight();
 					Match txtArea = window.getRegion().findText(xImage.getOcrText());
 					Region point = new Region(txtArea.x + xImage.getOffsetX() + txtArea.w/2, txtArea.y + xImage.getOffsetY() + txtArea.h/2, 1, 1);
 					point.click();
@@ -254,7 +260,7 @@ public class TestObject {
 	}
 	
 	/** Returns Sikuli object xImage */
-	protected XImage getImage() {
+	public XImage getImage() {
 		for (XImage img : xTestObject.getImage()) {
 			if (MasterScript.getTag() == null) {
 				return img;
@@ -519,17 +525,43 @@ public class TestObject {
 			Pattern pattern = getPattern(xImage);
 			try {
 				if (xImage.isImgRecognition()) {
-					return window.getRegion().find(pattern).text();
+					Region objRegion = window.getRegion().find(pattern);
+					if (xImage.getShift() != null) {
+						Rectangle shift = getRectangle(xImage.getShift());
+						Region shiftRegion = new Region(objRegion.x + shift.x, objRegion.y + shift.y, shift.width, shift.height);
+						return shiftRegion.text();
+					} else {
+						return objRegion.text();
+					}
 				} else {
-					return null;
+					Region txtRegion = window.getRegion().findText(xImage.getOcrText());
+					if (xImage.getShift() != null) {
+						Rectangle shift = getRectangle(xImage.getShift());
+						Region shiftRegion = new Region(txtRegion.x + shift.x, txtRegion.y + shift.y, shift.width, shift.height);
+						return shiftRegion.text();
+					} else {
+						return txtRegion.text();
+					}
 				}				
 			} catch (FindFailed e) {
 				e.printStackTrace();
 			}
+			return null;
 		default:
 			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
 			return null;		
 		}
+	}
+	
+	private Rectangle getRectangle(String strRectangle) {
+		strRectangle = strRectangle.substring(11, strRectangle.length() - 1);
+		String [] array = strRectangle.split(",");
+		
+		int x = Integer.parseInt(array[0].trim());
+		int y = Integer.parseInt(array[1].trim());
+		int w = Integer.parseInt(array[2].trim());
+		int h = Integer.parseInt(array[3].trim());
+		return new Rectangle(x, y, w, h);
 	}
 	
 	public boolean assertText(String expectedText) throws TafException{
@@ -542,5 +574,4 @@ public class TestObject {
 		}
 		return false;
 	}
-	
 }
