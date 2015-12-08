@@ -490,20 +490,26 @@ public class TestObject {
 	}
 	
 	protected By by() {
-		String [] loc = xTestObject.getTarget().split(":");
-		switch (loc[0]) {
-		case "id": return By.id(loc[1]);
-		case "xpath": return By.xpath(loc[1]);
-		case "link" : return By.linkText(loc[1]);
-		case "class" : return By.className(loc[1]);
-		case "css" : return By.cssSelector(loc[1]);
-		case "cssSelector": return By.cssSelector(loc[1]);
-		case "linkText": return By.linkText(loc[1]);
-		case "name": return By.name(loc[1]);
-		default:
-			System.out.println("Unexpected localizator '" + loc[0] + "' in text object '" + getObjectName() + "'");
-			return null;
+		String target = xTestObject.getTarget();
+		if (target.contains("=")) {
+			String [] loc = xTestObject.getTarget().split("=");
+			switch (loc[0]) {
+			case "id": return By.id(loc[1]);
+			case "xpath": return By.xpath(loc[1]);
+			case "link" : return By.linkText(loc[1]);
+			case "class" : return By.className(loc[1]);
+			case "css" : return By.cssSelector(loc[1]);
+			case "cssSelector": return By.cssSelector(loc[1]);
+			case "linkText": return By.linkText(loc[1]);
+			case "name": return By.name(loc[1]);
+			default:
+				System.out.println("Unexpected localizator '" + loc[0] + "' in text object '" + getObjectName() + "'");
+				return null;
+			}
+		} else {
+			return By.xpath(target);
 		}
+		
 	}
 	
 	/**
