@@ -12,7 +12,7 @@ import fp.forevo.manager.TestObjectManager;
 public class ComboBox extends TestObject {
 
 	public ComboBox(MasterScript ms, TestObjectManager tom, Window window, String testObjectName) {
-		super(ms, window, tom.getXTestObject(window.getXWindow().getName(), testObjectName), tom.getAbsoluteResPath());
+		super(ms, tom, window, tom.getXTestObject(window.getXWindow().getName(), testObjectName), tom.getAbsoluteResPath());
 	}
 	
 	public void clickElementFromListByTag(String value,String tag){

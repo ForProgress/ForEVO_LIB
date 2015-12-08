@@ -24,6 +24,8 @@ import fp.forevo.xml.map.XImage;
 import fp.forevo.xml.map.XTestObject;
 import fp.forevo.xml.map.XTestObjectMap;
 import fp.forevo.xml.map.XWindow;
+import fp.forevo.xml.project.XProject;
+import fp.forevo.xml.project.XTag;
 
 public class TestObjectManager {
 	
@@ -31,9 +33,10 @@ public class TestObjectManager {
 	private String projectPath = null;			// np. C:\Workspace\ExampleAutomationProject\
 	private String mapName = null;				// np. HomePage
 	private boolean changed = false;
+	private List<XTag> tagList = null;			// Tag list defined for project
 	
 	/**
-	 * Konstruktor klasy
+	 * Konstruktor klasy wykorzystywany przez Test Object Manager
 	 * @param scriptClassFile - Plik klasy java np. C:\Workspace\ExampleAutomationProject\src\myappl\modules\HomePage.java
 	 * @param parentClass - klasa po której ma dziedziczyc klasa mapy. Domyslnie jest "fp.forevo.manager.MasterScript"
 	 */
@@ -47,7 +50,7 @@ public class TestObjectManager {
 	}
 	
 	/**
-	 * Konstruktor klasy
+	 * Konstruktor klasy wykorzystywany w skryptach
 	 * @param projectPath - Œcie¿ka do projektu np. C:\Workspace\ExampleAutomationProject
 	 * @param mapFile
 	 */
@@ -59,9 +62,20 @@ public class TestObjectManager {
 			testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(new File(projectPath + "\\" + mapPath));
 			setMapName(mapPath);			
 			this.changed = false;
+			
+			// Wczytanie listy tagów
+			JAXBContext projectJaxbContext = JAXBContext.newInstance(XProject.class);
+			unmarshaller = projectJaxbContext.createUnmarshaller();
+			XProject project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));	
+			tagList = project.getTags();
+			
 		} catch (JAXBException e) {
 			e.printStackTrace();
 		}			
+	}
+	
+	public List<XTag> getTagList() {
+		return tagList;
 	}
 	
 	public String getProjectPath() {
@@ -257,7 +271,7 @@ public class TestObjectManager {
 								int ox = img.getOffsetX() != null ? img.getOffsetX() : 0;
 								int oy = img.getOffsetY() != null ? img.getOffsetY() : 0;
 								output.write("\t * <b>Offset: </b> " + ox + ":" + oy + "<br/>\n");
-								output.write("\t * <b>Tags: </b> " + getEmptyIfNull(img.getTag()) + "<br/>\n");
+								output.write("\t * <b>Tags: </b> " + getEmptyIfNull(img.getTagUids()) + "<br/>\n"); //TODO: uidy zamienic na nazwy tagow
 								if (img.isImgRecognition()) {
 									//Image png = new Image(tomApp.getShell().getDisplay(), img.getPath());
 									//Rectangle pngRec = png.getBounds();

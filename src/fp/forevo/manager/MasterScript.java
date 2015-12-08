@@ -39,7 +39,7 @@ public class MasterScript {
 		initalizeAutoIt();	
 		initalizeBrowserDrivers();
 		autoIt = new AutoItX();
-		Settings.ActionLogs = true;	// Sikuli logging level
+		Settings.ActionLogs = true;		// Sikuli logging level
 		Settings.OcrTextRead = true;	// Mo¿liwosc czytania tekstu z regionu
 		Settings.OcrTextSearch = true;	// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
 		data = new DataManager();
@@ -47,6 +47,10 @@ public class MasterScript {
 		baseUrl = "";
 		
 	}	
+	
+	public void loadProjectTags(File projectPath) {
+		
+	}
 	
 	protected String getProjectPath(Class<?> mapClass) {
 		String path = mapClass.getProtectionDomain().getCodeSource().getLocation().getPath();

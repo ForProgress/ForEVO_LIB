@@ -12,7 +12,7 @@ import fp.forevo.xml.map.XImage;
 public class TextBox extends TestObject {
 
 	public TextBox(MasterScript ms, TestObjectManager tom, Window window, String testObjectName) {
-		super(ms, window, tom.getXTestObject(window.getXWindow().getName(), testObjectName), tom.getAbsoluteResPath());
+		super(ms, tom, window, tom.getXTestObject(window.getXWindow().getName(), testObjectName), tom.getAbsoluteResPath());
 	}
 	
 	public boolean checkText(String text) {

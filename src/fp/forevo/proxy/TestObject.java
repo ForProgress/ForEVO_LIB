@@ -18,24 +18,28 @@ import org.sikuli.script.Region;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
+import fp.forevo.manager.TestObjectManager;
 import fp.forevo.manager.TestSettings;
 import fp.forevo.xml.map.XImage;
 import fp.forevo.xml.map.XTestObject;
+import fp.forevo.xml.project.XTag;
 
 public class TestObject {
 	
 	protected Window window = null;
 	protected XTestObject xTestObject = null;
 	protected MasterScript ms = null;
+	protected TestObjectManager tom = null;
 	public WebDriverWait webDriverWait = null;
 	private String resDir = null;
 	
 	// GLOBAL METHODS
-	
-	public TestObject(MasterScript ms, Window window, XTestObject xTestObject, String resDir) {
+
+	public TestObject(MasterScript ms, TestObjectManager tom, Window window, XTestObject xTestObject, String resDir) {
 		this.window = window;
 		this.xTestObject = xTestObject;
 		this.ms = ms;	
+		this.tom = tom;
 		this.resDir = resDir;
 	}
 	
@@ -259,12 +263,39 @@ public class TestObject {
 		return pattern;
 	}
 	
+	/**
+	 * Funkcja dostaje listê uidow a zwraca listê tagow
+	 * @param uids
+	 * @return
+	 */
+	private String getTags(String uids) {
+		String [] uidArray = uids.split(";");
+		String result = "";
+		for (String uid : uidArray) {
+			result += getTagName(uid) + ";";
+		}
+		return result;
+	}
+	
+	/**
+	 * Funkcja zwraca nazwê taga na podstawie uida
+	 * @param uid
+	 * @return
+	 */
+	public String getTagName(String uid) {
+		for (XTag xTag : tom.getTagList()) {
+			if (xTag.getUID().equals(uid))
+				return xTag.getName();
+		}
+		return null;
+	}
+	
 	/** Returns Sikuli object xImage */
 	public XImage getImage() {
 		for (XImage img : xTestObject.getImage()) {
 			if (MasterScript.getTag() == null) {
 				return img;
-			} else if (img.getTag() != null && img.getTag().contains(MasterScript.getTag())) {
+			} else if (img.getTagUids() != null && getTags(img.getTagUids()).contains(MasterScript.getTag())) {
 				return img;
 			}
 		}
@@ -508,7 +539,6 @@ public class TestObject {
 			BufferedImage bi = robot.createScreenCapture(getWindowRegion().getRect());
 			return bi;
 		} catch (AWTException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
