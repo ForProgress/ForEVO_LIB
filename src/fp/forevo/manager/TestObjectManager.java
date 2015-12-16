@@ -18,6 +18,7 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 
+import fp.forevo.proxy.Image;
 import fp.forevo.xml.map.ObjectFactory;
 import fp.forevo.xml.map.XDriverName;
 import fp.forevo.xml.map.XImage;
@@ -270,6 +271,7 @@ public class TestObjectManager {
 									output.write("\t * <b>Similarity:</b> " + img.getSimilarity() + "<br/>\n");
 								int ox = img.getOffsetX() != null ? img.getOffsetX() : 0;
 								int oy = img.getOffsetY() != null ? img.getOffsetY() : 0;
+							
 								output.write("\t * <b>Offset: </b> " + ox + ":" + oy + "<br/>\n");
 								output.write("\t * <b>Tags: </b> " + getEmptyIfNull(img.getTagUids()) + "<br/>\n"); //TODO: uidy zamienic na nazwy tagow
 								if (img.isImgRecognition()) {
@@ -277,16 +279,61 @@ public class TestObjectManager {
 									//Rectangle pngRec = png.getBounds();
 									if (img.getFileName().toLowerCase().endsWith(".png")) {
 										String imgPath = getAbsoluteResPath() + "\\" + img.getFileName();
+										String imgRelativePath = "{@docRoot}\\..\\" + getResPath() + "\\" + img.getFileName();
+										imgRelativePath = imgRelativePath.replace("\\", "/");
 										Rectangle pngRec = getImageRectangle(imgPath);
 										int w = pngRec.width;
 										int h = pngRec.height;	
 										int offsetX = w/2 - 5;
-										int offsetY = h/2 - 5;								
+										int offsetY = h/2 - 5;											
+										
 										if (img.getOffsetX() != null) offsetX = w/2 + img.getOffsetX() - 5;
 										if (img.getOffsetY() != null) offsetY = h/2 + img.getOffsetY() - 5;
-										output.write("\t * <div style=\"background: url('" + imgPath + "') no-repeat;width:" + w + "px;height:" + h + "px;\">\n");
-										output.write("\t * <img style=\"margin-left:" + offsetX + "px;margin-top:" + offsetY + "px\" src=\"" + getPointPath()  + "\"></div>\n");
-										output.write("\t * <br/>\n");
+																				
+										// get shift
+										int shiftX =0, shiftY=0, shiftW=0, shiftH = 0;
+										if (img.getShift()!=null){
+											String strRectangle = img.getShift();
+											strRectangle = strRectangle.substring(11, strRectangle.length() - 1);
+											String [] array = strRectangle.split(",");
+											
+											shiftX = Integer.parseInt(array[0].trim());
+											shiftY = Integer.parseInt(array[1].trim());
+											shiftW = Integer.parseInt(array[2].trim());
+											shiftH = Integer.parseInt(array[3].trim());											
+											
+										}
+										
+										// calculate size form and offset
+										int sizeXMainRectangle =(offsetX<0) ? w + Math.abs(offsetX) : w;
+										int sizeYMainRectangle = (offsetY<0) ? h + Math.abs(offsetY) : h;
+										
+										int sizeXShiftRectangle = (offsetX<0) ? shiftW+shiftX+Math.abs(offsetX) : shiftW+shiftX;										
+										int sizeYShiftRectangle = (offsetY<0) ? shiftH+shiftY+Math.abs(offsetY) : shiftH+shiftY;		
+										
+										int formX = (sizeXMainRectangle > sizeXShiftRectangle) ? sizeXMainRectangle : sizeXShiftRectangle;
+										int formY = (sizeYMainRectangle > sizeYShiftRectangle) ? sizeYMainRectangle : sizeYShiftRectangle;
+																				
+										if(offsetX>formX && offsetY<formY){
+											formX = offsetX+10;
+										}else if(offsetX<formX && offsetY>formY){
+											formY = offsetY+10;
+										}
+										
+										// set margin if point offset is negative
+										int marginXMain = (offsetX<0) ? Math.abs(offsetX) : 0;
+										int marginYMain = (offsetY<0) ? Math.abs(offsetY) : 0;
+										
+										shiftX = (offsetX<0) ? shiftX + Math.abs(offsetX) : shiftX;
+										shiftY = (offsetY<0) ? shiftY + Math.abs(offsetY) : shiftY;
+										
+										output.write("\t * <div style=\"overflow:visible;width:"+formX+"px;height:"+formY+"px;border:1px solid #e3e3c8;\">\n");
+										output.write("\t * <div style=\"border:1px solid #ff00ff;width:"+shiftW+"px;height:"+shiftH+"px;margin-top:"+shiftY+"px;margin-left:"+shiftX+"px;position:absolute;z-index:2\"></div>\n");
+										output.write("\t * <div style=\"background: url('" + imgRelativePath + "') no-repeat;width:" + w + "px;height:" + h + "px;margin-left:"+marginXMain+"px;margin-top:"+marginYMain+"px;z-index:1;border:1px solid #0000ff;\">\n");
+										output.write("\t * <img style=\"margin-left:" + offsetX + "px;margin-top:" + offsetY + "px;position:absolute;z-index:3;\" src=\"" + getPointPath()  + "\"></div>\n");
+										output.write("\t * </div>\n");
+										output.write("\t * <br/>\n");									
+									
 									}
 								} else {
 									output.write("\t * <b>OCR:</b> " + img.getOcrText() + "<br/>\n");
@@ -297,6 +344,7 @@ public class TestObjectManager {
 						output.write("\t * <b>Target:</b> " + testObject.getTarget() + "<br/>\n");
 					output.write("\t */\n");
 					output.write("\tprotected " + className + " " + name + " = get" + className + "(tomgr, " + window.getName() + ", \"" + name + "\");\n");
+					
 					output.write("\n");
 				}
 			}
@@ -336,7 +384,9 @@ public class TestObjectManager {
 	}
 	
 	private String getPointPath() {
-		return System.getenv("FP_TAF_PATH") + "\\point.png";
+		//return System.getenv("FP_TAF_PATH") + "\\point.png";
+		return "{@docRoot}/../res/point.png";
+		
 	}
 
 }
