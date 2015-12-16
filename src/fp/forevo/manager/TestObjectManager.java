@@ -338,5 +338,4 @@ public class TestObjectManager {
 	private String getPointPath() {
 		return System.getenv("FP_TAF_PATH") + "\\point.png";
 	}
-
 }
