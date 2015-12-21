@@ -18,7 +18,6 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 
-import fp.forevo.proxy.Image;
 import fp.forevo.xml.map.ObjectFactory;
 import fp.forevo.xml.map.XDriverName;
 import fp.forevo.xml.map.XImage;

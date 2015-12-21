@@ -5,33 +5,44 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-
-import org.robotframework.RobotFramework;
+import java.util.List;
 
 public class RobotTestRunner {
 	
 	private String projectPath = null;
-	private String robotJarPath = System.getenv("FP_TAF_PATH") + "/drivers/robotframework-2.8.5.jar";
+	private List<String> libs = new ArrayList<String>();
 	
 	@SuppressWarnings("rawtypes")
 	public RobotTestRunner(Class executor) {
 		 projectPath = executor.getProtectionDomain().getCodeSource().getLocation().getPath();
 		 projectPath = projectPath.substring(1, projectPath.indexOf("/bin/"));
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/robotframework-2.8.5.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/lib/ForEVO_LIB.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/lib/ForEvo_XML.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/sikulixapi.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/jacob.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/AutoItX4Java.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/selenium-java-2.45.0.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/mysql-connector-java-5.1.35-bin.jar");
+		 libs.add(System.getenv("FP_TAF_PATH") + "/drivers/selenium-server-standalone-2.46.0.jar");
 	}
 	
 	public void runSuite(String suiteName) {
 		String keywordsPath = projectPath + "/bin";
 		String projectName = projectPath.split("/")[projectPath.split("/").length - 1];
 		String suitePath = projectPath + "/robot/" + projectName + "/" + suiteName;
-		String discName = projectPath.substring(0, 2);
 		
-		String command = "java -cp \"" + keywordsPath + ";" + robotJarPath + "\" org.robotframework.RobotFramework " + suitePath;
+		String command = "java -cp \"" + keywordsPath;
+		for (String lib : libs)
+			command += ";" + lib; 
+		command += "\" org.robotframework.RobotFramework " + suitePath;
 		
 		final Process process;
 		try {
 			//System.out.println(command);
-			System.out.println("Start execution of " + suiteName + " suite.");
+			//System.out.println("Start execution of " + suiteName + " suite.");
 			File workingDir = new File(projectPath + "/results/" + suiteName + " " + getSuffix());
 			workingDir.mkdirs();
 			process = Runtime.getRuntime().exec(command, null, workingDir);

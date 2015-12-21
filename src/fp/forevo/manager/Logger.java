@@ -1,9 +1,7 @@
 package fp.forevo.manager;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,19 +10,252 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.imageio.ImageIO;
 
+/**
+ * Support for advanced logging
+ */
 public class Logger {
-	private static Connection tafConnection = null;
+	
+	private static Connection dbConnection = null;
+	private Conf conf = null;
+	
+	private final int PASSED = 1;
+	private final int FAILED = 2;
+	private final int WARNING = 3;
+	private final int INFO = 4;
+	
+	private final String IMG_FORMAT = "png"; // possible values: gif, png, jpg
+	
+	private int currentStatus = PASSED;
+	private int idProcess = -1;
+	private int idRun = -1;
+	
+	public Logger(Conf conf) {
+		this.conf = conf;
+	}
+	
+	
+	/**
+	 * For database logging only!
+	 * Create new log (new id_run from run table) in database. 
+	 * This method should be executed for every new test process.
+	 * @param processName
+	 */
+	public void startTest(String testName) {
+		// Tworzymy nowy run_id i od tego momentu logujemy pod ten id
+		
+		if (conf.isDbLog()) {
+			idProcess = getProcessId(testName);
+			
+			if (idProcess == -1)
+				idProcess = createNewProcess(testName);
+				
+			idRun = getNewRunId(idProcess);
+		}		
+	}
+	
+	/**
+	 * Report information in report with PASSED status
+	 * @param message - message to report
+	 */
+	public void passed(String message) {
+		report(PASSED, message, null);
+	}
+	
+	/**
+	 * Report information and image in report with PASSED status
+	 * @param message - message to report
+	 * @param image - image to report
+	 */
+	public void passed(String message, BufferedImage image) {
+		report(PASSED, message, image);
+	}
+	
+	/**
+	 * Report information in report with INFO status
+	 * @param message - message to report
+	 */
+	public void info(String message) {
+		report(INFO, message, null);
+	}
+	
+	/**
+	 * Report information and image in report with INFO status
+	 * @param message - message to report
+	 * @param image - image to report
+	 */
+	public void info(String message, BufferedImage image) {
+		report(INFO, message, image);
+	}
+	
+	/**
+	 * Report information in report with WARNING status
+	 * @param message - message to report
+	 */
+	public void warning(String message) {
+		report(WARNING, message, null);
+	}
+	
+	/**
+	 * Report information and image in report with WARNING status
+	 * @param message - message to report
+	 * @param image - image to report
+	 */
+	public void warning(String message, BufferedImage image) {
+		report(WARNING, message, image);
+	}
+	
+	/**
+	 * Report information in report with FAILED status
+	 * @param message - message to report
+	 */
+	public void error(String message) {
+		report(FAILED, message, null);
+	}
+	
+	/**
+	 * Report information and image in report with FAILED status
+	 * @param message - message to report
+	 * @param image - image to report
+	 */
+	public void error(String message, BufferedImage image) {
+		report(FAILED, message, image);
+	}
+	
+	/**
+	 * Report message into log
+	 * @param status - (PASSED, FAILED, WARNING, INFO)
+	 * @param message - message to log 
+	 * @param image - test object parent window image, created by testObject.capture() method 
+	 */
+	private void report(int status, String message, BufferedImage image) {
+		StackTraceElement[] thread = Thread.currentThread().getStackTrace();
+		String methodName = thread[thread.length - 3].getMethodName();
+		
+		if (conf.isDbLog()) 
+			logDatabaseMessage(methodName, status, message, image);
+		
+		if (conf.isRobotLog()) 
+			logLocalMessage(methodName, status, message, image);
+	}	
+	
+	/**
+	 * Report message into local log
+	 * @param - (PASSED, FAILED, WARNING, INFO)
+	 * @param message - message to log 
+	 * @param image - test object parent window image, created by testObject.capture() method 
+	 */
+	private void logLocalMessage(String methodName, int status, String message, BufferedImage image) {
+		// Save image into file
+		if (image != null) {
+			String absoluteImagePath = null;
+			
+			// kiedy wywolujemy bezposrednio z eclipsa
+			if (!System.getProperty("user.dir").contains("results")) {
+				new File(System.getProperty("user.dir") + "/results/temp/img/").mkdirs();
+				absoluteImagePath = System.getProperty("user.dir") + "/results/temp/img/" + System.currentTimeMillis() + ".jpg";
+			} else {			
+				absoluteImagePath = System.getProperty("user.dir") + "/img/" + System.currentTimeMillis() + ".jpg";
+			}
+			
+			try {
+				File outputFile = new File(absoluteImagePath);
+				ImageIO.write(image, IMG_FORMAT, outputFile);
+				System.out.println("*HTML*<img src=\"" + absoluteImagePath + "\">");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}			
+		}		
 
-	// private static Conf conf = new Conf();
+		switch (status) {
+		case PASSED:
+			System.out.println("*PASSED:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			break;
+		case FAILED:
+			System.err.println("*FAILED:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			break;
+		case WARNING:
+			System.out.println("*WARNING:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			break;
+		default:
+			System.out.println("*INFO:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			break;
+		}
+	}
+	
+	/**
+	 * Report message into database log
+	 * @param - (PASSED, FAILED, WARNING, INFO)
+	 * @param message - message to log 
+	 * @param image - test object parent window image, created by testObject.capture() method 
+	 */
+	private void logDatabaseMessage(String methodName, int status, String message, BufferedImage image) {
+		int idImg = -1;
+		try {
+			connect();
+			
+			if (image != null)
+				idImg = insertImageIntoDatabase(image);
+			
+			PreparedStatement pStat = dbConnection
+					.prepareStatement("insert into steps (id_process, id_run, id_status, title, details, time, id_img) VALUES (?, ?, ?, ?, ?, now(), ?)");
+			pStat.setInt(1, idProcess);
+			pStat.setInt(2, idRun);
+			pStat.setInt(3, status);
+			pStat.setString(4, methodName);
+			pStat.setString(5, message);
+
+			if (idImg == -1) {
+				pStat.setNull(6, Types.INTEGER);
+			} else {
+				pStat.setInt(6, idImg);
+			}
+
+			pStat.execute();
+			pStat.close();
+			
+			updateTestEnd();
+			
+		} catch (SQLException | ClassNotFoundException e) {
+			e.printStackTrace();
+		} 
+	}
+	
+	/**
+	 * Method insert image capture into database
+	 * @param image	- image object [BufferedImage]
+	 * @param imageName - image name
+	 * @return imageId - image id
+	 */
+	public int insertImageIntoDatabase(BufferedImage image) {
+		int idImage = -1;
+		try {
+			java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+			ImageIO.write(image, "png", baos);
+
+			PreparedStatement pStat = dbConnection.prepareStatement("insert into images (img) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+			pStat.setBlob(1, new java.io.ByteArrayInputStream(baos.toByteArray()));
+			pStat.execute();
+
+			ResultSet rs = pStat.getGeneratedKeys();
+			if (rs.next()) {
+				idImage = rs.getInt(1);
+			}
+			pStat.close();
+		} catch (SQLException | IOException e) {
+			e.printStackTrace();
+		} 
+		
+		return idImage;
+	}
+	
 
 	/**
-	 * Metoda s³u¿¹ca do po³¹czeñ z baz¹ danych
+	 * Method for connection with test result database
 	 * 
 	 * @throws ClassNotFoundException
 	 * @throws SQLException
@@ -33,485 +264,111 @@ public class Logger {
 
 		Class.forName("com.mysql.jdbc.Driver");
 
-		if (tafConnection == null || tafConnection.isClosed()) {
+		if (dbConnection == null || dbConnection.isClosed()) {
 			System.out.println("DB connection. Creating new DB connection");
 
-			tafConnection = DriverManager.getConnection(Conf.getDbPath(), Conf.getDbUser(), Conf.getDbPassword());
+			dbConnection = DriverManager.getConnection(conf.getDbPath(), conf.getDbUser(), conf.getDbPassword());
 
-			if (!tafConnection.isValid(10)) {
-				Conf.setDbLog(false);
+			if (!dbConnection.isValid(10)) {
+				conf.setDbLog(false);
 				return false;
-			} else {
+			} else
 				return true;
-			}
-
 		}
 		return true;
-
-	}
-
-	private int getIterationNumber() {
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				Statement statement = tafConnection.createStatement();
-				ResultSet resultSet = statement.executeQuery("Select max(iteration) from runs");
-
-				if (resultSet.next()) {
-					return resultSet.getInt(1);
-				}
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		return 1;
-	}
-
-	private int getNewIterationNumber() {
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				Statement statement = tafConnection.createStatement();
-				ResultSet resultSet = statement.executeQuery("Select max(iteration)+1 from runs");
-
-				if (resultSet.next()) {
-					return resultSet.getInt(1);
-				}
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		return 1;
-	}
-
-	private int getIDBusinessProcess(String processName) {
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				Statement statement = tafConnection.createStatement();
-				ResultSet resultSet = statement.executeQuery("select id_process from process where name = '" + processName + "'");
-
-				if (resultSet.next()) {
-					return resultSet.getInt(1);
-				}
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		return 0;
 	}
 
 	/**
-	 * Sprawdza czy w bazie danych istnieje wskazany proces biznesowy i tworzy
-	 * nowy jesli takiego nie ma. W ustawieniach zapisywane jest id procesu do
-	 * ktorego beda raportowane wyniki
-	 * 
+	 * Method returns process identyficator
 	 * @param processName
+	 * @return
 	 */
-	public void createBusinessProcess(String processName) {
-		TestSettings.setBusinessProcess(processName);
+	private int getProcessId(String processName) {
+		try {
+			connect();
+			Statement statement = dbConnection.createStatement();
+			ResultSet resultSet = statement.executeQuery("select id_process from process where name = '" + processName + "'");
 
-		if (TestSettings.getIteration() == 0)
-			TestSettings.setIteration(getIterationNumber());
-
-		if (Conf.isDbLog())
-			try {
-
-				if (!connect()) {
-					Conf.setDbLog(false);
-					warning("DB connection", "Database connection problem. Skrypt zostanie przelaczony w tryb DBlog=false");
-					return;
-				}
-
-				int idBusinessProcess = getIDBusinessProcess(processName);
-				if (idBusinessProcess == 0) {
-
-					PreparedStatement pStat = tafConnection.prepareStatement("insert into process (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-					pStat.setString(1, processName);
-					pStat.execute();
-
-					ResultSet rs = pStat.getGeneratedKeys();
-					if (rs.next()) {
-						idBusinessProcess = rs.getInt(1);
-					}
-					pStat.close();
-					// idBusinessProcess=getIDBusinessProcess(processName);
-
-				}
-				TestSettings.setIdBusinessProcess(idBusinessProcess);
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (resultSet.next()) {
+				return resultSet.getInt(1);
 			}
+		} catch (SQLException | ClassNotFoundException e) {
+			e.printStackTrace();
+		} 
+		
+		return -1;
 	}
 
-	private void reportTestStart(int idProcess, int id_thread) {
+	/**
+	 * Method create new process in the process table 
+	 * @param processName - the process name
+	 * @return process identyficator
+	 */
+	private int createNewProcess(String processName) {
+		int newProcessId = -1;
+		try {
+			connect();
+			PreparedStatement pStat = dbConnection.prepareStatement("insert into process (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+			pStat.setString(1, processName);
+			pStat.execute();
 
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				int last_inserted_id = -1;
-
-				PreparedStatement pStat = tafConnection.prepareStatement(
-						"insert into runs (`id_process`,`id_status`,`time_start`,`id_thread`,`user_name`,`iteration`) VALUES (?, ?, now(), ?, ?, ?)",
-						Statement.RETURN_GENERATED_KEYS);
-				pStat.setInt(1, idProcess);
-				pStat.setInt(2, Status.WARNING.getId());
-				pStat.setInt(3, id_thread);
-				pStat.setString(4, System.getProperty("user.name"));
-				pStat.setInt(5, TestSettings.getIteration());
-				pStat.execute();
-
-				ResultSet rs = pStat.getGeneratedKeys();
-				if (rs.next()) {
-					last_inserted_id = rs.getInt(1);
-				}
-
-				pStat.close();
-				TestSettings.setIdrun(last_inserted_id);
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			ResultSet rs = pStat.getGeneratedKeys();
+			if (rs.next()) {
+				newProcessId = rs.getInt(1);
 			}
-
+			pStat.close();
+		} catch (SQLException | ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		return newProcessId;
 	}
+	
+	private int getNewRunId(int idProcess) {
+		int newRunId = -1;
+		try {
+			connect();			
+			
+			PreparedStatement pStat = dbConnection.prepareStatement("insert into runs (`id_process`,`id_status`, `time_start`, `time_end`, `user_name`) VALUES (?, ?, now(), now(), ?)",
+					Statement.RETURN_GENERATED_KEYS);
+			pStat.setInt(1, idProcess);
+			pStat.setInt(2, PASSED);
+			pStat.setString(3, System.getProperty("user.name"));
+			pStat.execute();
 
-	private void reportTestEnd(Status status) {
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				PreparedStatement pStat = tafConnection.prepareStatement("UPDATE runs set `id_status`=?,`time_end`=now() where `id_run` =?");
-
-				pStat.setInt(1, status.getId());
-				pStat.setInt(2, TestSettings.getIdrun());
-				pStat.execute();
-				pStat.close();
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			ResultSet rs = pStat.getGeneratedKeys();
+			if (rs.next()) {
+				newRunId = rs.getInt(1);
 			}
-
-	}
-
-	private void reportStep(int idProcess, int idRun, Status status, String title, String details, int id_img) {
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				PreparedStatement pStat = tafConnection
-						.prepareStatement("insert into steps (id_process, id_run, id_status, title, details, time, idimg) VALUES (?, ?, ?, ?, ?, now(),?)");
-				pStat.setInt(1, idProcess);
-				pStat.setInt(2, idRun);
-				pStat.setInt(3, status.getId());
-				pStat.setString(4, title);
-				pStat.setString(5, details);
-
-				if (id_img == -1) {
-					pStat.setNull(6, Types.INTEGER);
-				} else {
-					pStat.setInt(6, id_img);
-				}
-
-				pStat.execute();
-
-				pStat.close();
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
+			
+			pStat.close();
+			
+			
+		} catch (SQLException | ClassNotFoundException e) {
+			e.printStackTrace();
+		} 
+		return newRunId;
 	}
 
 	/**
-	 * Zapisuje do bazy danych informacje. Tabela taf.steps
-	 * 
-	 * @param message
+	 * In the case of test interruption, test end is reported in every step.
 	 */
-	public void info(String message) {
-		StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
-		StackTraceElement e = stacktrace[2];
-		String methodName = e.getMethodName();
-		info(methodName, message);
-	}
-
-	/**
-	 * Zapisuje w logu przekazany komunikat bledu wraz ze zrzutem ekranu
-	 * 
-	 * @param action
-	 *            - nazwa akcji
-	 * @param message
-	 *            - tresc wiadomosc
-	 * @param image
-	 *            - zrzut ekranu
-	 */
-	public void error(String action, String message, BufferedImage image) {
-		String imageName = "img_Error_" + TestSettings.getIdBusinessProcess() + "_" + TestSettings.getIdrun() + "_" + System.currentTimeMillis();
-		int idImage = uploadImage(image, imageName);
-		logLocally(action, message, Status.FAILED);
-		saveImageLocally(image, imageName);
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.FAILED, action, message, idImage);
-		TestSettings.setTest_status(Status.FAILED);
-	}
-
-	private void logLocally(String action, String message, Status status) {
-		if (status == Status.FAILED) {
-			System.err.println("*ERROR:" + System.currentTimeMillis() + "* " + action + " " + message);
-		} else if (status == Status.WARNING) {
-			System.out.println("*WARN:" + System.currentTimeMillis() + "* " + action + " " + message);
-		} else
-			System.out.println("*INFO:" + System.currentTimeMillis() + "* " + action + " " + message);
-		writeToFile(" " + status + " " + action + " " + message);
-	}
-
-	/**
-	 * Zapisuje do bazy danych informacje. Tabela taf.steps
-	 * 
-	 * @param action
-	 * @param message
-	 */
-	public void error(String action, String message) {
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.FAILED, action, message, -1);
-
-		logLocally(action, message, Status.FAILED);
-		// System.err.println(action +" "+ message);
-		// writeToFile(" ERROR "+action +" "+ message);
-		TestSettings.setTest_status(Status.FAILED);
-	}
-
-	public void error(String message) {
-		StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
-		StackTraceElement e = stacktrace[2];
-		String methodName = e.getMethodName();
-		error(methodName, message);
-	}
-
-	/**
-	 * Zapisuje do bazy danych informacje. Tabela taf.steps
-	 * 
-	 * @param action
-	 * @param message
-	 */
-	public void warning(String action, String message, BufferedImage image) {
-		String imageName = "img_Warning_" + TestSettings.getIdBusinessProcess() + "_" + TestSettings.getIdrun() + "_" + System.currentTimeMillis();
-		logLocally(action, message, Status.WARNING);
-		saveImageLocally(image, imageName);
-		int idImage = uploadImage(image, imageName);
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.WARNING, action, message, idImage);
-
-	}
-
-	public void warning(String action, String message) {
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.WARNING, action, message, -1);
-		logLocally(action, message, Status.WARNING);
-	}
-
-	public void warning(String message) {
-		StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
-		StackTraceElement e = stacktrace[2];
-		String methodName = e.getMethodName();
-		warning(methodName, message);
-	}
-
-	/**
-	 * Zapisuje do bazy danych informacje. Tabela taf.steps
-	 * 
-	 * @param action
-	 * @param message
-	 * @param status
-	 */
-	public void info(String action, String message) {
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.INFO, action, message, -1);
-		logLocally(action, message, Status.INFO);
-	}
-
-	public void info(String action, String message, BufferedImage image) {
-		String imageName = "img_INFO_" + TestSettings.getIdBusinessProcess() + "_" + TestSettings.getIdrun() + "_" + System.currentTimeMillis();
-		int idImage = uploadImage(image, imageName);
-		logLocally(action, message, Status.INFO);
-		saveImageLocally(image, imageName);
-		reportStep(TestSettings.getIdBusinessProcess(), TestSettings.getIdrun(), Status.INFO, action, message, idImage);
+	private void updateTestEnd() {
+		try {
+			connect();
+			PreparedStatement pStat = dbConnection.prepareStatement("UPDATE runs set `id_status`=?,`time_end`=now() where `id_run` =?");
+			pStat.setInt(1, currentStatus);
+			pStat.setInt(2, idRun);
+			pStat.execute();
+			pStat.close();
+		} catch (SQLException | ClassNotFoundException e) {
+			e.printStackTrace();
+		} 
 	}
 
 	private String currentDate() {
 		SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
 		Date date = new Date(System.currentTimeMillis());
 		return formater.format(date);
-	}
-
-	public void saveImageLocally(BufferedImage image, String imageName) {
-		if (Conf.isSaveScreenShots()) {
-			new File(TestSettings.getScreenShotsPath()).mkdirs();
-			File outputfile = new File(TestSettings.getScreenShotsPath() + "/" + imageName + ".jpg");
-			try {
-				ImageIO.write(image, "jpg", outputfile);
-				writeToFile(" INFO image saved to: " + outputfile.getAbsolutePath());
-
-				if (TestSettings.isResultsTemporarily()) {
-					System.out.println("*HTML*<img src=\"" + TestSettings.getScreenShotsPath().replace("/", "\\") + "\\" + outputfile.getName() + "\">");
-				} else {
-					System.out.println("*HTML*<img src=\"" + TestSettings.getScreenShotsDir().replace("/", "\\") + "\\" + outputfile.getName() + "\">");
-				}
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public int uploadImage(BufferedImage image, String imageName) {
-		java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-
-		int idImage = 0;
-		if (Conf.isDbLog())
-			try {
-
-				connect();
-				ImageIO.write(image, "png", baos);
-				connect();
-
-				PreparedStatement pStat = tafConnection.prepareStatement("insert into img_store (img_name, img) VALUES (?, ?)",
-						Statement.RETURN_GENERATED_KEYS);
-				pStat.setString(1, imageName);
-				pStat.setBlob(2, new java.io.ByteArrayInputStream(baos.toByteArray()));
-				pStat.execute();
-
-				ResultSet rs = pStat.getGeneratedKeys();
-				if (rs.next()) {
-					idImage = rs.getInt(1);
-				}
-				pStat.close();
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		return idImage;
-	}
-
-	public void startProcess(String processName, String reportPath, boolean startNewIteration) {
-		TestSettings.setProcessStarted(true);
-		if (startNewIteration)
-			TestSettings.setIteration(getNewIterationNumber());
-		startProcess(processName, reportPath);
-	}
-
-	public void startProcess(String processName, String reportPath) {
-		TestSettings.setProcessStarted(true);
-		TestSettings.setReportDir(reportPath);
-		TestSettings.setResultsTemporarily(false);
-		startProcess(processName);
-	}
-
-	/**
-	 * Zapisuje do bazy danych informacje o starcie testu oraz ustawia nazwe
-	 * procesu biznesowego dla ktorego beda raportowane kolejne wyniki.
-	 * 
-	 * @param processName
-	 */
-	public void startProcess(String processName) {
-		TestSettings.setProcessStarted(true);
-		createBusinessProcess(processName);
-		reportTestStart(TestSettings.getIdBusinessProcess(), 1);
-		TestSettings.setTest_status(Status.PASSED);
-		info("Start testu", processName);
-	}
-
-	public void startProcess() {
-		TestSettings.setProcessStarted(true);
-		String processName = "Brak procesu";
-		createBusinessProcess(processName);
-		reportTestStart(TestSettings.getIdBusinessProcess(), 1);
-		if (!Conf.isDbLog()) {
-			info("Logger", "DBlog=false, results writes in local log");
-		}
-		TestSettings.setTest_status(Status.PASSED);
-		info("Start testu", processName);
-	}
-
-	/**
-	 * Zapisuje do bazy danych informacje o zakonczeniu testu z okreslonym
-	 * statusem.
-	 * 
-	 * @param processName
-	 * @param status
-	 */
-	public void endProcess() {
-		info("End testu", TestSettings.getBusinessProcess());
-		reportTestEnd(TestSettings.getTest_status());
-		TestSettings.setProcessStarted(false);
-		TestSettings.clearTMPSettings();
-	}
-
-	private void writeToFile(String message) {
-		if (Conf.isTafLog())
-			try {
-
-				DateFormat dateFormat = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
-				Date date = new Date();
-				String dateString = dateFormat.format(date);
-
-				String dirPath = TestSettings.getReportPath();
-				String path = dirPath + "//log_" + TestSettings.getIdBusinessProcess() + "_" + currentDate() + ".log";
-
-				File dir = new File(dirPath);
-				if (!dir.exists()) {
-					dir.mkdir();
-				}
-
-				File file = new File(path);
-
-				if (!file.exists()) {
-					file.createNewFile();
-				}
-
-				FileWriter fileWritter = new FileWriter(file.getAbsolutePath(), true);
-				BufferedWriter bufferWritter = new BufferedWriter(fileWritter);
-				bufferWritter.write(dateString + " " + message);
-				bufferWritter.newLine();
-				bufferWritter.close();
-			} catch (IOException e) {
-				System.err.println("Save into file is not success!");
-				e.printStackTrace();
-			}
-	}
+	}	
 }

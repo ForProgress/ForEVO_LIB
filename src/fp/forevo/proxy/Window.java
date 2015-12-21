@@ -6,33 +6,31 @@ import java.awt.image.BufferedImage;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.remote.SessionNotFoundException;
-import org.seleniumhq.jetty7.util.log.Log;
 import org.sikuli.script.Region;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
 import fp.forevo.manager.TestObjectManager;
-import fp.forevo.manager.TestSettings;
 import fp.forevo.xml.map.XWindow;
 
 public class Window {
 
 	private XWindow xWindow = null;
-	
+
 	public Window(MasterScript ms, TestObjectManager tom, String windowName) {
 		xWindow = tom.getXWindow(windowName);
 	}
-	
+
 	/** Get XML object representation */
 	public XWindow getXWindow() {
 		return xWindow;
 	}
-		
+
 	/** Close window */
 	public void close() {
 		MasterScript.autoIt.winClose(getXWindow().getTarget());
 	}
-	
+
 	/** Get Sikuli region from autoIt window */
 	public Region getRegion() {
 		int x, y, w, h;
@@ -54,89 +52,92 @@ public class Window {
 		}
 		return null;
 	}
-	
+
 	/** Set title for application window */
 	public void setTitle(String title) {
 		MasterScript.autoIt.winSetTitle(xWindow.getTarget(), "", title);
 		xWindow.setTarget(title);
 	}
+
 	/**
 	 * Verify Title
+	 * 
 	 * @param title
 	 * @return true if page contains specified title or false otherwise
 	 */
-	public boolean verifyTitle(String title){
+	public boolean verifyTitle(String title) {
 		String currentTitle = MasterScript.browser.getTitle();
-		if(currentTitle.equals(title)){
-			MasterScript.log.info("Verify Title","The site contains the specified title. Current title: "+currentTitle+" Given title: "+title);
+		if (currentTitle.equals(title)) {
 			return true;
-		}else{		
-			MasterScript.log.warning("Verify Title","The site NOT contains the specified title. Current title: "+currentTitle+" Given title: "+title,screenShot());
+		} else {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Assert Title
+	 * 
 	 * @param title
-	 * @return true if page contains specified title or throw exception otherwise
+	 * @return true if page contains specified title or throw exception
+	 *         otherwise
 	 */
-	public boolean assertTitle(String title) throws TafException{
+	public boolean assertTitle(String title) throws TafException {
 		String currentTitle = MasterScript.browser.getTitle();
-		if(currentTitle.equals(title)){
-			MasterScript.log.info("Assert Title","The site contains the specified title. Current title: "+currentTitle+" Given title: "+title);
+		if (currentTitle.equals(title)) {
 			return true;
-		}else{
-			throw new TafException("Assert Title","The site NOT contains the specified title. Current title: "+currentTitle+" Given title: "+title,screenShot());
-			
+		} else {
+			return false;
 		}
 	}
-	
+
 	/**
 	 * Assert Text
-	 * @param Expected Text 
+	 * 
+	 * @param Expected
+	 *            Text
 	 * @return true if page contains specified text or throw exception otherwise
 	 */
-	public boolean assertText(String expectedText) throws TafException{
+	public boolean assertText(String expectedText) throws TafException {
 		boolean status = MasterScript.browser.findElement(By.cssSelector("body")).getText().contains(expectedText);
-		
-		if(status==true){
-			MasterScript.log.info("Found the correct text: \""+expectedText+"\"");
+
+		if (status == true) {
 			return status;
-		}else{
-			reportError("No expected text on the page.", screenShot());
+		} else {
 			return status;
-		}		
+		}
 	}
-	
+
 	/**
 	 * Verify Text
-	 * @param Expected Text 
+	 * 
+	 * @param Expected
+	 *            Text
 	 * @return true if page contains specified text or false otherwise
 	 */
-	public boolean verifyText(String expectedText) throws TafException{
+	public boolean verifyText(String expectedText) throws TafException {
 		boolean status = MasterScript.browser.findElement(By.cssSelector("body")).getText().contains(expectedText);
-		
-		if(status==true){
-			MasterScript.log.info("Verify Text","Found the correct text: \""+expectedText+"\"");
+
+		if (status == true) {
 			return status;
-		}else{
-			MasterScript.log.warning("Verify Text","No expected text on the page",screenShot());
+		} else {
 			return status;
-		}		
+		}
 	}
-	
-	/** Wait maximum TIMEOUT for window activation. TIMEOUT is defined in MasterScript */
+
+	/**
+	 * Wait maximum TIMEOUT for window activation. TIMEOUT is defined in
+	 * MasterScript
+	 */
 	public void activate() {
 		activate(MasterScript.TIMEOUT);
 	}
-	
+
 	/** Wait maximum timeout (sec) for window activation */
 	public void activate(int timeout) {
 		switch (getXWindow().getDriverName()) {
 		case WEB_DRIVER:
-			//String handle = ms.browser.getWindowHandle();
-			//ms.browser.switchTo().window(handle);
+			// String handle = ms.browser.getWindowHandle();
+			// ms.browser.switchTo().window(handle);
 			// Nie wiem jak wyciagnac okno przegladarki na wierzch...
 			break;
 		case AUTO_IT:
@@ -145,11 +146,11 @@ public class Window {
 			break;
 		default:
 			break;
-		}	
+		}
 	}
-	
+
 	/** Wait until app is not opened and activated */
-	public void waitIfNotActive() {		
+	public void waitIfNotActive() {
 		switch (getXWindow().getDriverName()) {
 		case WEB_DRIVER:
 			// Nie wiem jak wyciagnac okno przegladarki na wierzch...
@@ -161,33 +162,23 @@ public class Window {
 			break;
 		}
 	}
-	
-	private void reportError(String message, BufferedImage image ) throws TafException{
-		StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
-		StackTraceElement e = stacktrace[2];
-		String methodName = e.getMethodName();
-		if(!TestSettings.isContinueOnError()){
-			throw new TafException(methodName,message,screenShot());}else{
-			MasterScript.log.error(methodName, message, image);
-			}
-	}
-	
+
 	public void highlight() {
 		getRegion().highlight(1);
 	}
-	
+
 	public boolean exist() {
 		switch (getXWindow().getDriverName()) {
 		case WEB_DRIVER:
 			if (MasterScript.browser == null) {
 				return false;
 			} else {
-		        try {
-		            MasterScript.browser.getTitle();
-		            return true;
-		        } catch (SessionNotFoundException e) {
-		            return false;
-		        }
+				try {
+					MasterScript.browser.getTitle();
+					return true;
+				} catch (SessionNotFoundException e) {
+					return false;
+				}
 			}
 		case AUTO_IT:
 			return MasterScript.autoIt.winExists(xWindow.getTarget());
@@ -195,9 +186,9 @@ public class Window {
 			return false;
 		}
 	}
-	
-	public BufferedImage screenShot(){
-		
+
+	public BufferedImage screenShot() {
+
 		Robot robot;
 		try {
 			robot = new Robot();
@@ -208,7 +199,6 @@ public class Window {
 			e.printStackTrace();
 		}
 		return null;
-		
-		
+
 	}
 }

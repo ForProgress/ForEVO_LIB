@@ -28,10 +28,16 @@ import org.apache.poi.ss.usermodel.Row;
 public class DataManager {
 	
 	public static final String ROBOT_LIBRARY_SCOPE = "GLOBAL";
-	private Connection tafConnection = null;
+	private Connection connection = null;
 	private int currentRow = 1; // wiersz w aktualnym arkuszu z którego aktualnie korzystamy
 	private String currentSheet = null;
 	private HSSFWorkbook workbook = null;
+	private Conf conf = null;
+	
+	public DataManager(Conf conf) {
+		this.conf = conf;
+	}
+	
 	
 	//----------------------------------------- DATABASE ------------------------------------------
 		
@@ -42,8 +48,8 @@ public class DataManager {
 	 */
 	private void connect() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.jdbc.Driver");
-		if (tafConnection == null || tafConnection.isClosed()) {
-			tafConnection = DriverManager.getConnection(Conf.getDbPath(), Conf.getDbUser(), Conf.getDbPassword());
+		if (connection == null || connection.isClosed()) {
+			connection = DriverManager.getConnection(conf.getDbPath(), conf.getDbUser(), conf.getDbPassword());
 		}
 	}	
 		
@@ -57,7 +63,7 @@ public class DataManager {
 		try {
 			connect();	
 			DataSet kd = null;
-			Statement statement = tafConnection.createStatement();
+			Statement statement = connection.createStatement();
 			ResultSet resultSet = statement.executeQuery("select * from test_data where data like '%" + data + "%'");
 			while (resultSet.next()) {
 				kd = new DataSet(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3));
@@ -84,11 +90,11 @@ public class DataManager {
 		try {	
 			connect();	
 		
-			PreparedStatement pStat = tafConnection.prepareStatement("insert into test_data (tags, data, locked, creation_date, user_name, process_name) VALUES (?, ?, 1, now(), ?, ?)");
+			PreparedStatement pStat = connection.prepareStatement("insert into test_data (tags, data, locked, creation_date, user_name, process_name) VALUES (?, ?, 1, now(), ?, ?)");
 			pStat.setString(1, tag.toString());
 			pStat.setString(2, data);
 			pStat.setString(3, System.getProperty("user.name"));
-			pStat.setString(4, TestSettings.getProcessName());
+			pStat.setString(4, conf.getProcessName());
 			pStat.execute();
 			pStat.close();
 		} catch (Exception e) {
@@ -105,7 +111,7 @@ public class DataManager {
 		try {
 			connect();	
 			DataSet kd = null;
-			Statement statement = tafConnection.createStatement();
+			Statement statement = connection.createStatement();
 			ResultSet resultSet = statement.executeQuery("select * from test_data where id_test_data = " + idTestData);
 			while (resultSet.next()) {
 				kd = new DataSet(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3));
@@ -126,22 +132,17 @@ public class DataManager {
 	 * @return
 	 */	
 	public DataSet dbGetTestData(Tag tag, boolean lock) {
-		String processName = "";
-	
-		if (TestSettings.getProcessName() != null)
-			processName = TestSettings.getProcessName();
-		
 		try {
 			connect();	
 			DataSet kd = null;
-			Statement statement = tafConnection.createStatement();
+			Statement statement = connection.createStatement();
 			ResultSet resultSet = statement.executeQuery("select * from test_data where tags = \"" + tag + "\" limit 1");
 			if (resultSet.next()) {
 				int idTestData = resultSet.getInt(1);
 				kd = new DataSet(idTestData, resultSet.getString(2), resultSet.getString(3));
-				PreparedStatement prepStmt = tafConnection.prepareStatement("update test_data set locked = ?, process_name = ? where id_test_data = " + idTestData);
+				PreparedStatement prepStmt = connection.prepareStatement("update test_data set locked = ?, process_name = ? where id_test_data = " + idTestData);
 				prepStmt.setInt(1, lock == true ? 1 : 0);
-				prepStmt.setString(2, processName);
+				prepStmt.setString(2, conf.getProcessName());
 				prepStmt.execute();
 				prepStmt.close();
 			}		
@@ -177,12 +178,12 @@ public class DataManager {
 		try {
 			connect();	
 			Data kd = null;
-			Statement statement = tafConnection.createStatement();
+			Statement statement = connection.createStatement();
 			ResultSet resultSet = statement.executeQuery("select * from test_data where id_test_data = (select min(id_test_data) from test_data where (" + strKeys.substring(0, strKeys.length() - 4) + ") and locked < 1 and test_env = '" + conf.getTestEnv() + "')");
 			while (resultSet.next()) {
 				int idTestData = resultSet.getInt(1);
 				kd = new Data(idTestData, resultSet.getString(2), resultSet.getString(3));
-				PreparedStatement prepStmt = tafConnection.prepareStatement("update test_data set locked = ?, process_name = ? where id_test_data = " + idTestData);
+				PreparedStatement prepStmt = connection.prepareStatement("update test_data set locked = ?, process_name = ? where id_test_data = " + idTestData);
 				prepStmt.setInt(1, lock == true ? 1 : 0);
 				prepStmt.setString(2, processName);
 				prepStmt.execute();
@@ -206,12 +207,12 @@ public class DataManager {
 	public void dbUpdateTestData(DataSet Data, boolean lock) {
 		try {
 			connect();	
-			PreparedStatement pStat = tafConnection.prepareStatement("update test_data set tags = ?, data = ?, locked = ?, update_date = now(), update_user = ?, process_name = ? where id_test_data = " + Data.getIdTestData());
+			PreparedStatement pStat = connection.prepareStatement("update test_data set tags = ?, data = ?, locked = ?, update_date = now(), update_user = ?, process_name = ? where id_test_data = " + Data.getIdTestData());
 			pStat.setString(1, Data.getTag());
 			pStat.setString(2, Data.getData());
 			pStat.setInt(3, lock == true ? 1 : 0);
 			pStat.setString(4, System.getProperty("user.name"));
-			pStat.setString(5,  TestSettings.getProcessName());
+			pStat.setString(5,  conf.getProcessName());
 			pStat.executeUpdate();
 			pStat.close();
 		} catch (Exception e) {
@@ -223,7 +224,7 @@ public class DataManager {
 	private void dbLockUnlockData(int idTestData, boolean lock) {
 		try {
 			connect();	
-			PreparedStatement pStat = tafConnection.prepareStatement("update test_data set locked = ?, update_date = now(), update_user = ? where id_test_data = ?");
+			PreparedStatement pStat = connection.prepareStatement("update test_data set locked = ?, update_date = now(), update_user = ? where id_test_data = ?");
 			pStat.setInt(1, lock == true ? 1 : 0);
 			pStat.setString(2, System.getProperty("user.name"));
 			pStat.setInt(3, idTestData);			

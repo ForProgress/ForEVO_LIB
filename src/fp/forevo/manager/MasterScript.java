@@ -42,8 +42,8 @@ public class MasterScript {
 		Settings.ActionLogs = true;		// Sikuli logging level
 		Settings.OcrTextRead = true;	// Mo¿liwosc czytania tekstu z regionu
 		Settings.OcrTextSearch = true;	// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
-		data = new DataManager();
-		log = new Logger();
+		data = new DataManager(conf);
+		log = new Logger(conf);
 		baseUrl = "";
 		
 	}	
@@ -142,28 +142,27 @@ public class MasterScript {
 	 */
 	public DataSet initTestData(Tag tag) {
 		DataSet newData = null;
-		
 		// Jeœli dany proces nie mia³ przypisanych danych, to pobieramy dane na podstawie klucza.
 		// Jeœli ma ju¿ dane to pobieramy dane poprzez id	
-		if (TestSettings.getIdTestData() < 0) {
+		if (conf.getIdTestData() < 0) {
 			System.out.println("Identyfikator rekordu danych nie przekazany - pobranie rekordu z kluczem " + tag.toString());
 			newData = data.dbGetTestData(tag, true);
 			if (newData != null) {		
 				// Przekazujemy informacjê o id_test_data dla pozosta³ych skryptów				
-				TestSettings.setIdTestData(newData.getIdTestData());
+				conf.setIdTestData(newData.getIdTestData());
 			}
 		} else {
-			System.out.println("Pobieramy dane dla identyfikatora " + TestSettings.getIdTestData());
-			newData = data.dbGetTestData(TestSettings.getIdTestData());
+			System.out.println("Pobieramy dane dla identyfikatora " + conf.getIdTestData());
+			newData = data.dbGetTestData(conf.getIdTestData());
 			if (newData != null)
 				// Jeœli porzedni skrypt nie wykona³ siê poprawnie to klucz bêdzie inny ni¿ tego oczekujemy, wtedy musimy pobraæ inne dane.
 				if (!newData.getTag().equals(tag.toString())) {
 					System.out.println("Porzucenie danych o identyfikatorze " + newData.getIdTestData() + ". Dane nie s¹ gotowe do wykorzystania na tym etapie. Przyczyn¹ mo¿e byæ niepoprawne wykonanie poprzedniego etapu.");
 					newData = data.dbGetTestData(tag, true);
 					if (newData != null) {
-						TestSettings.setIdTestData(newData.getIdTestData());
+						conf.setIdTestData(newData.getIdTestData());
 					} else {
-						TestSettings.setIdTestData(-1);
+						conf.setIdTestData(-1);
 					}
 				}
 		}
@@ -171,55 +170,48 @@ public class MasterScript {
 			System.out.println("Brak danych testowych");
 		else
 			System.out.println("id_test_data: " + newData.getIdTestData() + ", klucz: " + newData.getTag().toString() + ", dane: " + newData.getData());
-		
 		return newData;
 	}
 	
 	public Window getWindow(TestObjectManager tom, String windowName) {
 		Window window = new Window(this, tom, windowName);
-		if (window.getXWindow() == null) {
-			log.error(windowName ,": object does not exist in xml map file!");
-		}
+		if (window.getXWindow() == null)
+			log.error(windowName + ": object does not exist in xml map file!");
 		return window;
 	}
 	
 	public Button getButton(TestObjectManager tom, Window window, String testObjectName) {
 		Button button = new Button(this, tom, window, testObjectName);
-		if (!button.isNotNull()) {
-			log.error(testObjectName , ": object does not exist in xml map file!");
-		}
+		if (!button.isNotNull())
+			log.error(testObjectName + ": object does not exist in xml map file!");
 		return button;
 	}
 	
 	public Element getElement(TestObjectManager tom, Window window, String testObjectName){
 		Element element = new Element(this, tom, window, testObjectName);
-		if (!element.isNotNull()) {
-			log.error(testObjectName , ": object does not exist in xml map file!");
-		}
+		if (!element.isNotNull())
+			log.error(testObjectName + ": object does not exist in xml map file!");
 		return element;
 	}
 	
 	public TextBox getTextBox(TestObjectManager tom, Window window, String testObjectName) {
 		TextBox textBox = new TextBox(this, tom, window, testObjectName);
-		if (!textBox.isNotNull()) {
-			log.error(testObjectName , ": object does not exist in xml map file!");
-		}
+		if (!textBox.isNotNull())
+			log.error(testObjectName + ": object does not exist in xml map file!");
 		return textBox;
 	}
 	
 	public Image getImage(TestObjectManager tom, Window window, String testObjectName) {
 		Image image = new Image(this, tom, window, testObjectName);
-		if (!image.isNotNull()) {
-			log.error(testObjectName , ": object does not exist in xml map file!");
-		}
+		if (!image.isNotNull())
+			log.error(testObjectName + ": object does not exist in xml map file!");
 		return image;
 	}
 	
 	public ComboBox getComboBox(TestObjectManager tom, Window window, String testObjectName){
 		ComboBox combobox = new ComboBox(this, tom, window, testObjectName);
-		if(!combobox.isNotNull()){
-			log.error(testObjectName, ": object does not exist in xml map file");
-		}
+		if(!combobox.isNotNull())
+			log.error(testObjectName + ": object does not exist in xml map file!");
 		return combobox;
 	}
 	
