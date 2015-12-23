@@ -21,23 +21,13 @@ import javax.imageio.ImageIO;
 public class Logger {
 	
 	private static Connection dbConnection = null;
-	private Conf conf = null;
 	
-	private final int PASSED = 1;
-	private final int FAILED = 2;
+	private final int INFO = 1;
+	private final int PASSED = 2;
 	private final int WARNING = 3;
-	private final int INFO = 4;
+	private final int FAILED = 4;	
 	
 	private final String IMG_FORMAT = "png"; // possible values: gif, png, jpg
-	
-	private int currentStatus = PASSED;
-	private int idProcess = -1;
-	private int idRun = -1;
-	
-	public Logger(Conf conf) {
-		this.conf = conf;
-	}
-	
 	
 	/**
 	 * For database logging only!
@@ -48,13 +38,20 @@ public class Logger {
 	public void startTest(String testName) {
 		// Tworzymy nowy run_id i od tego momentu logujemy pod ten id
 		
-		if (conf.isDbLog()) {
-			idProcess = getProcessId(testName);
+		if (Conf.isDbLog()) {
+			int idTest = getTestId(testName);
 			
-			if (idProcess == -1)
-				idProcess = createNewProcess(testName);
+			if (idTest == -1)
+				idTest = createNewTest(testName);
 				
-			idRun = getNewRunId(idProcess);
+			int idRun = getNewRunId(idTest);
+			
+			Conf.setTestName(testName);
+			Conf.setRunId(idRun);
+			Conf.setTestId(idTest);
+			Conf.setTestStatus(PASSED);
+			
+			info("Started test " + testName);
 		}		
 	}
 	
@@ -62,7 +59,7 @@ public class Logger {
 	 * Report information in report with PASSED status
 	 * @param message - message to report
 	 */
-	public void passed(String message) {
+	public void pass(String message) {
 		report(PASSED, message, null);
 	}
 	
@@ -71,7 +68,7 @@ public class Logger {
 	 * @param message - message to report
 	 * @param image - image to report
 	 */
-	public void passed(String message, BufferedImage image) {
+	public void pass(String message, BufferedImage image) {
 		report(PASSED, message, image);
 	}
 	
@@ -113,7 +110,7 @@ public class Logger {
 	 * Report information in report with FAILED status
 	 * @param message - message to report
 	 */
-	public void error(String message) {
+	public void fail(String message) {
 		report(FAILED, message, null);
 	}
 	
@@ -122,7 +119,7 @@ public class Logger {
 	 * @param message - message to report
 	 * @param image - image to report
 	 */
-	public void error(String message, BufferedImage image) {
+	public void fail(String message, BufferedImage image) {
 		report(FAILED, message, image);
 	}
 	
@@ -133,13 +130,18 @@ public class Logger {
 	 * @param image - test object parent window image, created by testObject.capture() method 
 	 */
 	private void report(int status, String message, BufferedImage image) {
+		// update test status
+		Conf.setTestStatus(status);
+		
+		// get method name
 		StackTraceElement[] thread = Thread.currentThread().getStackTrace();
 		String methodName = thread[thread.length - 3].getMethodName();
 		
-		if (conf.isDbLog()) 
+		// report message
+		if (Conf.isDbLog()) 
 			logDatabaseMessage(methodName, status, message, image);
 		
-		if (conf.isRobotLog()) 
+		if (Conf.isRobotLog()) 
 			logLocalMessage(methodName, status, message, image);
 	}	
 	
@@ -157,9 +159,10 @@ public class Logger {
 			// kiedy wywolujemy bezposrednio z eclipsa
 			if (!System.getProperty("user.dir").contains("results")) {
 				new File(System.getProperty("user.dir") + "/results/temp/img/").mkdirs();
-				absoluteImagePath = System.getProperty("user.dir") + "/results/temp/img/" + System.currentTimeMillis() + ".jpg";
+				absoluteImagePath = System.getProperty("user.dir") + "/results/temp/img/" + System.currentTimeMillis() + "." + IMG_FORMAT;
 			} else {			
-				absoluteImagePath = System.getProperty("user.dir") + "/img/" + System.currentTimeMillis() + ".jpg";
+				new File(System.getProperty("user.dir") + "/img/").mkdirs();
+				absoluteImagePath = System.getProperty("user.dir") + "/img/" + System.currentTimeMillis() + "." + IMG_FORMAT;
 			}
 			
 			try {
@@ -173,16 +176,16 @@ public class Logger {
 
 		switch (status) {
 		case PASSED:
-			System.out.println("*PASSED:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			System.out.println("|PASS|" + currentDate() + "|" + methodName + " " + message);
 			break;
 		case FAILED:
-			System.err.println("*FAILED:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			System.err.println("|FAIL|" + currentDate()  + "|" + methodName + " " + message);
 			break;
 		case WARNING:
-			System.out.println("*WARNING:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			System.out.println("|WARN|" + currentDate()  + "|" + methodName + " " + message);
 			break;
 		default:
-			System.out.println("*INFO:" + System.currentTimeMillis() + "* " + methodName + " " + message);
+			System.out.println("|INFO|" + currentDate()  + "|" + methodName + " " + message);
 			break;
 		}
 	}
@@ -202,9 +205,9 @@ public class Logger {
 				idImg = insertImageIntoDatabase(image);
 			
 			PreparedStatement pStat = dbConnection
-					.prepareStatement("insert into steps (id_process, id_run, id_status, title, details, time, id_img) VALUES (?, ?, ?, ?, ?, now(), ?)");
-			pStat.setInt(1, idProcess);
-			pStat.setInt(2, idRun);
+					.prepareStatement("insert into steps (id_test, id_run, id_status, title, details, time, id_img) VALUES (?, ?, ?, ?, ?, now(), ?)");
+			pStat.setInt(1, Conf.getTestId());
+			pStat.setInt(2, Conf.getRunId());
 			pStat.setInt(3, status);
 			pStat.setString(4, methodName);
 			pStat.setString(5, message);
@@ -265,12 +268,9 @@ public class Logger {
 		Class.forName("com.mysql.jdbc.Driver");
 
 		if (dbConnection == null || dbConnection.isClosed()) {
-			System.out.println("DB connection. Creating new DB connection");
-
-			dbConnection = DriverManager.getConnection(conf.getDbPath(), conf.getDbUser(), conf.getDbPassword());
-
+			dbConnection = DriverManager.getConnection(Conf.getDbPath(), Conf.getDbUser(), Conf.getDbPassword());
 			if (!dbConnection.isValid(10)) {
-				conf.setDbLog(false);
+				Conf.setDbLog(false);
 				return false;
 			} else
 				return true;
@@ -279,15 +279,15 @@ public class Logger {
 	}
 
 	/**
-	 * Method returns process identyficator
-	 * @param processName
+	 * Method returns test identyficator
+	 * @param testName
 	 * @return
 	 */
-	private int getProcessId(String processName) {
+	private int getTestId(String testName) {
 		try {
 			connect();
 			Statement statement = dbConnection.createStatement();
-			ResultSet resultSet = statement.executeQuery("select id_process from process where name = '" + processName + "'");
+			ResultSet resultSet = statement.executeQuery("select id_test from tests where name = '" + testName + "'");
 
 			if (resultSet.next()) {
 				return resultSet.getInt(1);
@@ -301,37 +301,37 @@ public class Logger {
 
 	/**
 	 * Method create new process in the process table 
-	 * @param processName - the process name
+	 * @param testName - the process name
 	 * @return process identyficator
 	 */
-	private int createNewProcess(String processName) {
-		int newProcessId = -1;
+	private int createNewTest(String testName) {
+		int newTestId = -1;
 		try {
 			connect();
-			PreparedStatement pStat = dbConnection.prepareStatement("insert into process (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-			pStat.setString(1, processName);
+			PreparedStatement pStat = dbConnection.prepareStatement("insert into tests (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+			pStat.setString(1, testName);
 			pStat.execute();
 
 			ResultSet rs = pStat.getGeneratedKeys();
 			if (rs.next()) {
-				newProcessId = rs.getInt(1);
+				newTestId = rs.getInt(1);
 			}
 			pStat.close();
 		} catch (SQLException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 		
-		return newProcessId;
+		return newTestId;
 	}
 	
-	private int getNewRunId(int idProcess) {
+	private int getNewRunId(int idTest) {
 		int newRunId = -1;
 		try {
 			connect();			
 			
-			PreparedStatement pStat = dbConnection.prepareStatement("insert into runs (`id_process`,`id_status`, `time_start`, `time_end`, `user_name`) VALUES (?, ?, now(), now(), ?)",
+			PreparedStatement pStat = dbConnection.prepareStatement("insert into runs (id_test, id_status, time_start, time_end, user_name) VALUES (?, ?, now(), now(), ?)",
 					Statement.RETURN_GENERATED_KEYS);
-			pStat.setInt(1, idProcess);
+			pStat.setInt(1, idTest);
 			pStat.setInt(2, PASSED);
 			pStat.setString(3, System.getProperty("user.name"));
 			pStat.execute();
@@ -357,8 +357,8 @@ public class Logger {
 		try {
 			connect();
 			PreparedStatement pStat = dbConnection.prepareStatement("UPDATE runs set `id_status`=?,`time_end`=now() where `id_run` =?");
-			pStat.setInt(1, currentStatus);
-			pStat.setInt(2, idRun);
+			pStat.setInt(1, Conf.getTestStatus());
+			pStat.setInt(2, Conf.getRunId());
 			pStat.execute();
 			pStat.close();
 		} catch (SQLException | ClassNotFoundException e) {
@@ -367,7 +367,7 @@ public class Logger {
 	}
 
 	private String currentDate() {
-		SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 		Date date = new Date(System.currentTimeMillis());
 		return formater.format(date);
 	}	

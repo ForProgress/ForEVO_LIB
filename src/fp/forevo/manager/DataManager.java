@@ -32,12 +32,6 @@ public class DataManager {
 	private int currentRow = 1; // wiersz w aktualnym arkuszu z którego aktualnie korzystamy
 	private String currentSheet = null;
 	private HSSFWorkbook workbook = null;
-	private Conf conf = null;
-	
-	public DataManager(Conf conf) {
-		this.conf = conf;
-	}
-	
 	
 	//----------------------------------------- DATABASE ------------------------------------------
 		
@@ -49,7 +43,7 @@ public class DataManager {
 	private void connect() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.jdbc.Driver");
 		if (connection == null || connection.isClosed()) {
-			connection = DriverManager.getConnection(conf.getDbPath(), conf.getDbUser(), conf.getDbPassword());
+			connection = DriverManager.getConnection(Conf.getDbPath(), Conf.getDbUser(), Conf.getDbPassword());
 		}
 	}	
 		
@@ -94,7 +88,7 @@ public class DataManager {
 			pStat.setString(1, tag.toString());
 			pStat.setString(2, data);
 			pStat.setString(3, System.getProperty("user.name"));
-			pStat.setString(4, conf.getProcessName());
+			pStat.setString(4, Conf.getTestName());
 			pStat.execute();
 			pStat.close();
 		} catch (Exception e) {
@@ -142,7 +136,7 @@ public class DataManager {
 				kd = new DataSet(idTestData, resultSet.getString(2), resultSet.getString(3));
 				PreparedStatement prepStmt = connection.prepareStatement("update test_data set locked = ?, process_name = ? where id_test_data = " + idTestData);
 				prepStmt.setInt(1, lock == true ? 1 : 0);
-				prepStmt.setString(2, conf.getProcessName());
+				prepStmt.setString(2, Conf.getTestName());
 				prepStmt.execute();
 				prepStmt.close();
 			}		
@@ -179,7 +173,7 @@ public class DataManager {
 			connect();	
 			Data kd = null;
 			Statement statement = connection.createStatement();
-			ResultSet resultSet = statement.executeQuery("select * from test_data where id_test_data = (select min(id_test_data) from test_data where (" + strKeys.substring(0, strKeys.length() - 4) + ") and locked < 1 and test_env = '" + conf.getTestEnv() + "')");
+			ResultSet resultSet = statement.executeQuery("select * from test_data where id_test_data = (select min(id_test_data) from test_data where (" + strKeys.substring(0, strKeys.length() - 4) + ") and locked < 1 and test_env = '" + Conf.getTestEnv() + "')");
 			while (resultSet.next()) {
 				int idTestData = resultSet.getInt(1);
 				kd = new Data(idTestData, resultSet.getString(2), resultSet.getString(3));
@@ -212,7 +206,7 @@ public class DataManager {
 			pStat.setString(2, Data.getData());
 			pStat.setInt(3, lock == true ? 1 : 0);
 			pStat.setString(4, System.getProperty("user.name"));
-			pStat.setString(5,  conf.getProcessName());
+			pStat.setString(5,  Conf.getTestName());
 			pStat.executeUpdate();
 			pStat.close();
 		} catch (Exception e) {

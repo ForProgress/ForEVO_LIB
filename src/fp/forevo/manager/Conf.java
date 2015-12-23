@@ -8,88 +8,123 @@ import java.util.Properties;
 public class Conf {
 
 	// Database configuration
-	private boolean dbLog = false;
-	private boolean robotLog = true;
-	private String dbPath = null;
-	private String dbUser = null;
-	private String dbPassword = null;
-	private Properties prop;	
-	private String processName = "brak";
-	private int idTestData = -1;
+	private static boolean dbLog = false;
+	private static boolean robotLog = true;
+	private static String dbPath = null;
+	private static String dbUser = null;
+	private static String dbPassword = null;
 
-	public Conf() {
+	public Conf() {			
 		try {
-			prop = new Properties();
+			Properties prop = new Properties();
 			FileInputStream fis;
 			fis = new FileInputStream(new File(getConfFile()));
 			prop.load(fis);
 			fis.close();
+			
+			// Database configuration
+			dbLog = Boolean.parseBoolean(prop.getProperty("dbLog"));
+			robotLog = Boolean.parseBoolean(prop.getProperty("robotLog"));
+			dbPath = prop.getProperty("dbPath");
+			dbUser = prop.getProperty("dbUser");
+			dbPassword = prop.getProperty("dbPassword");
 
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
-
-		// Database configuration
-		dbLog = Boolean.parseBoolean(prop.getProperty("dbLog"));
-		dbPath = prop.getProperty("dbPath");
-		dbUser = prop.getProperty("dbUser");
-		dbPassword = prop.getProperty("dbPassword");
+		}	
 	}
 	
-	public String getProcessName() {
-		return processName;
+	public static String getTestName() {
+		return System.getProperty("FOREVO_TEST_NAME");
 	}
 	
-	public void setProcessName(String processName) {
-		this.processName = processName;
+	public static void setTestName(String processName) {
+		System.setProperty("FOREVO_TEST_NAME", processName);
+	}
+	
+	public static int getTestId() {
+		String idProcess = System.getProperty("FOREVO_TEST_ID");
+		if (idProcess != null)
+			return Integer.parseInt(idProcess);
+		else
+			return -1;
+	}
+	
+	public static void setTestId(int id) {
+		System.setProperty("FOREVO_TEST_ID", "" + id);
+	}
+	
+	public static int getIdTestData() {
+		String idTestDataStr = System.getProperty("FOREVO_DATA_ID");
+		if (idTestDataStr != null)
+			return Integer.parseInt(idTestDataStr);
+		else
+			return -1;
+	}
+	
+	public static void setIdTestData(int id) {
+		System.setProperty("FOREVO_DATA_ID", "" + id);
+	}
+	
+	public static int getRunId() {
+		String idTestRun = System.getProperty("FOREVO_RUN_ID");
+		if (idTestRun != null)
+			return Integer.parseInt(idTestRun);
+		else
+			return -1;
+	}
+	
+	public static void setRunId(int id) {
+		System.setProperty("FOREVO_RUN_ID", "" + id);
+	}
+	
+	public static int getTestStatus() {
+		String idTestStatus = System.getProperty("FOREVO_TEST_STATUS_ID");
+		if (idTestStatus != null)
+			return Integer.parseInt(idTestStatus);
+		else
+			return 2; // PASSED
+	}
+	
+	public static void setTestStatus(int status) {
+		int currTestStatus = getTestStatus();
+		if (currTestStatus < status)
+			System.setProperty("FOREVO_TEST_STATUS_ID", "" + status);
 	}
 
-	public boolean isDbLog() {
+	public static boolean isDbLog() {
 		return dbLog;
 	}
 
-	public void setDbLog(boolean enabled) {
+	public static void setDbLog(boolean enabled) {
 		dbLog = enabled;
 	}
 	
-	public boolean isRobotLog() {
+	public static boolean isRobotLog() {
 		return robotLog;
 	}
 	
-	public void setRobotLog(boolean enabled) {
+	public static void setRobotLog(boolean enabled) {
 		robotLog = enabled;
 	}
 	
-	public int getIdTestData() {
-		return idTestData;
-	}
-	
-	public void setIdTestData(int id) {
-		this.idTestData = id;
-	}
-	
-/*
-	public String getClassPath() {
-		return Conf.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-	}
-*/
-	public String getDbPath() {
+	public static String getDbPath() {
 		return dbPath;
 	}
 
-	public String getDbUser() {
+	public static String getDbUser() {
 		return dbUser;
 	}
 
-	public String getDbPassword() {
+	public static String getDbPassword() {
 		return dbPassword;
 	}
 
-	public String getLibPath() {
+	public static String getLibPath() {
 		return System.getenv("FP_TAF_PATH") + "\\drivers";
 	}
 
-	public String getConfFile() {
+	public static String getConfFile() {
 		return System.getenv("FP_TAF_PATH") + "\\conf.properties";
 	}
 }

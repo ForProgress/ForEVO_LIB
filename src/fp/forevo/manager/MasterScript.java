@@ -29,21 +29,20 @@ public class MasterScript {
 	public static AutoItX autoIt = null;		// Main object to work using AutoIt libraries
 	public static WebDriver browser = null;		// Main object to work using Selenium WebDriver
 	public static String tag = null;			// Tag for searching images using Sikuli libraries
-	protected static DataManager data = null;		// Data Manager object
-	public static Logger log = null;		// Logger for test scripts
-	protected static Conf conf = new Conf();			// Configuration object
+	protected static DataManager data = null;	// Data Manager object
+	public static Logger log = null;			// Logger for test scripts
 	public static String baseUrl = null;
 	
 	public MasterScript() {
-		conf = new Conf();		
+		new Conf();							// read configuration
 		initalizeAutoIt();	
 		initalizeBrowserDrivers();
 		autoIt = new AutoItX();
-		Settings.ActionLogs = true;		// Sikuli logging level
-		Settings.OcrTextRead = true;	// Mo¿liwosc czytania tekstu z regionu
-		Settings.OcrTextSearch = true;	// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
-		data = new DataManager(conf);
-		log = new Logger(conf);
+		Settings.ActionLogs = false;		// Sikuli logging level
+		Settings.OcrTextRead = true;		// Mo¿liwosc czytania tekstu z regionu
+		Settings.OcrTextSearch = true;		// Mo¿liwosc wyszukiwania polozenia tekstu na regionie
+		data = new DataManager();
+		log = new Logger();
 		baseUrl = "";
 		
 	}	
@@ -70,21 +69,21 @@ public class MasterScript {
 	
 	public void initalizeAutoIt() {
 		String jacobDllVersionToUse = System.getProperty("sun.arch.data.model").contains("32") ? "jacob-1.18-M2-x86.dll" : "jacob-1.18-M2-x64.dll";
-		File dllFile = new File(conf.getLibPath(), jacobDllVersionToUse);
+		File dllFile = new File(Conf.getLibPath(), jacobDllVersionToUse);
 		System.setProperty(LibraryLoader.JACOB_DLL_PATH, dllFile.getAbsolutePath());
 	}
 	
 	public void initalizeBrowserDrivers(){
 		// initialize CHROME driver
-		File file = new File(conf.getLibPath()+"/webdriver","chromedriver.exe");		
+		File file = new File(Conf.getLibPath()+"/webdriver","chromedriver.exe");		
 	    System.setProperty("webdriver.chrome.driver", file.getAbsolutePath());
 	    
 	    // initialize Internet Explorer driver
-	    file = new File(conf.getLibPath()+"/webdriver","IEDriverServer.exe");
+	    file = new File(Conf.getLibPath()+"/webdriver","IEDriverServer.exe");
 	    System.setProperty("webdriver.ie.driver", file.getAbsolutePath());
 	    
 	    // initialize Opera driver
-	    file = new File(conf.getLibPath()+"/webdriver","operadriver.exe");
+	    file = new File(Conf.getLibPath()+"/webdriver","operadriver.exe");
 	    System.setProperty("webdriver.opera.driver", file.getAbsolutePath());
 	}
 	
@@ -144,25 +143,25 @@ public class MasterScript {
 		DataSet newData = null;
 		// Jeœli dany proces nie mia³ przypisanych danych, to pobieramy dane na podstawie klucza.
 		// Jeœli ma ju¿ dane to pobieramy dane poprzez id	
-		if (conf.getIdTestData() < 0) {
+		if (Conf.getIdTestData() < 0) {
 			System.out.println("Identyfikator rekordu danych nie przekazany - pobranie rekordu z kluczem " + tag.toString());
 			newData = data.dbGetTestData(tag, true);
 			if (newData != null) {		
 				// Przekazujemy informacjê o id_test_data dla pozosta³ych skryptów				
-				conf.setIdTestData(newData.getIdTestData());
+				Conf.setIdTestData(newData.getIdTestData());
 			}
 		} else {
-			System.out.println("Pobieramy dane dla identyfikatora " + conf.getIdTestData());
-			newData = data.dbGetTestData(conf.getIdTestData());
+			System.out.println("Pobieramy dane dla identyfikatora " + Conf.getIdTestData());
+			newData = data.dbGetTestData(Conf.getIdTestData());
 			if (newData != null)
 				// Jeœli porzedni skrypt nie wykona³ siê poprawnie to klucz bêdzie inny ni¿ tego oczekujemy, wtedy musimy pobraæ inne dane.
 				if (!newData.getTag().equals(tag.toString())) {
 					System.out.println("Porzucenie danych o identyfikatorze " + newData.getIdTestData() + ". Dane nie s¹ gotowe do wykorzystania na tym etapie. Przyczyn¹ mo¿e byæ niepoprawne wykonanie poprzedniego etapu.");
 					newData = data.dbGetTestData(tag, true);
 					if (newData != null) {
-						conf.setIdTestData(newData.getIdTestData());
+						Conf.setIdTestData(newData.getIdTestData());
 					} else {
-						conf.setIdTestData(-1);
+						Conf.setIdTestData(-1);
 					}
 				}
 		}
@@ -176,42 +175,42 @@ public class MasterScript {
 	public Window getWindow(TestObjectManager tom, String windowName) {
 		Window window = new Window(this, tom, windowName);
 		if (window.getXWindow() == null)
-			log.error(windowName + ": object does not exist in xml map file!");
+			log.fail(windowName + ": object does not exist in xml map file!");
 		return window;
 	}
 	
 	public Button getButton(TestObjectManager tom, Window window, String testObjectName) {
 		Button button = new Button(this, tom, window, testObjectName);
 		if (!button.isNotNull())
-			log.error(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml map file!");
 		return button;
 	}
 	
 	public Element getElement(TestObjectManager tom, Window window, String testObjectName){
 		Element element = new Element(this, tom, window, testObjectName);
 		if (!element.isNotNull())
-			log.error(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml map file!");
 		return element;
 	}
 	
 	public TextBox getTextBox(TestObjectManager tom, Window window, String testObjectName) {
 		TextBox textBox = new TextBox(this, tom, window, testObjectName);
 		if (!textBox.isNotNull())
-			log.error(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml map file!");
 		return textBox;
 	}
 	
 	public Image getImage(TestObjectManager tom, Window window, String testObjectName) {
 		Image image = new Image(this, tom, window, testObjectName);
 		if (!image.isNotNull())
-			log.error(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml map file!");
 		return image;
 	}
 	
 	public ComboBox getComboBox(TestObjectManager tom, Window window, String testObjectName){
 		ComboBox combobox = new ComboBox(this, tom, window, testObjectName);
 		if(!combobox.isNotNull())
-			log.error(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml map file!");
 		return combobox;
 	}
 	
