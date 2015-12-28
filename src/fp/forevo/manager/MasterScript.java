@@ -11,10 +11,9 @@ import org.openqa.selenium.opera.OperaDriver;
 import org.openqa.selenium.safari.SafariDriver;
 import org.sikuli.basics.Settings;
 
-import autoitx4java.AutoItX;
-
 import com.jacob.com.LibraryLoader;
 
+import autoitx4java.AutoItX;
 import fp.forevo.proxy.Browser;
 import fp.forevo.proxy.Button;
 import fp.forevo.proxy.ComboBox;
@@ -53,8 +52,14 @@ public class MasterScript {
 	
 	protected String getProjectPath(Class<?> mapClass) {
 		String path = mapClass.getProtectionDomain().getCodeSource().getLocation().getPath();
-		path = path.replace("/bin/", "");
-		path = path.substring(1);
+		//System.out.println("Path: " + path);
+		if(path.endsWith(".jar")) {  // get resource from JAR file
+			
+		} else { // get resource from IDE			
+			path = path.replace("/bin/", "");
+			path = path.substring(1);
+		}		
+		
 		return path;
 	}
 	

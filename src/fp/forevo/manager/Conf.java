@@ -121,10 +121,10 @@ public class Conf {
 	}
 
 	public static String getLibPath() {
-		return System.getenv("FP_TAF_PATH") + "\\drivers";
+		return System.getenv("FOREVO") + "\\drivers";
 	}
 
 	public static String getConfFile() {
-		return System.getenv("FP_TAF_PATH") + "\\conf.properties";
+		return System.getenv("FOREVO") + "\\conf.properties";
 	}
 }

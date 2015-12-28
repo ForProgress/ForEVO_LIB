@@ -52,6 +52,7 @@ public class Logger {
 			Conf.setTestStatus(PASSED);
 			
 			info("Started test " + testName);
+			info("Run id: " + idRun);
 		}		
 	}
 	
@@ -135,7 +136,7 @@ public class Logger {
 		
 		// get method name
 		StackTraceElement[] thread = Thread.currentThread().getStackTrace();
-		String methodName = thread[thread.length - 3].getMethodName();
+		String methodName = thread[3].getMethodName();
 		
 		// report message
 		if (Conf.isDbLog()) 
