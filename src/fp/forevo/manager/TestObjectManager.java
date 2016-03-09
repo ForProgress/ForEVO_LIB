@@ -4,8 +4,10 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -69,17 +71,37 @@ public class TestObjectManager {
 		try {
 			JAXBContext jaxbContext = JAXBContext.newInstance(XTestObjectMap.class);
 			Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-			testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(new File(projectPath + "\\" + mapPath));
+			File mapa = new File(projectPath + "\\" + mapPath);
+			//testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(new File(projectPath + "\\" + mapPath));
+			if (mapa.exists()) {				
+				testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(mapa);
+			} else {				
+				ClassLoader CLDR = this.getClass().getClassLoader();
+				InputStream is = CLDR.getResourceAsStream("" + mapPath);
+				testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(is);
+			}
+			
 			setMapName(mapPath);
 			this.changed = false;
 
 			// Wczytanie listy tagów
 			JAXBContext projectJaxbContext = JAXBContext.newInstance(XProject.class);
 			unmarshaller = projectJaxbContext.createUnmarshaller();
-			XProject project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));
+			
+			File projectTaf = new File(projectPath + "\\project.taf");			
+			//XProject project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));
+			XProject project = null;
+			if (mapa.exists()) {				
+				project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));
+			} else {				
+				ClassLoader CLDR = this.getClass().getClassLoader();
+				InputStream is = CLDR.getResourceAsStream("" + "project.taf");
+				project = (XProject) unmarshaller.unmarshal(is);
+			}
+			
 			tagList = project.getTags();
 
-		} catch (JAXBException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

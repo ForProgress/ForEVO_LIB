@@ -114,8 +114,10 @@ public class MasterScript {
 	}
 	
 	public void runBrowser(Browser browserName, String url) {
-		runBrowser(browserName);
+		runBrowser(browserName);		
 		browser.get(url);
+		
+		
 	}
 	
 	public static void sleep(double sec) {

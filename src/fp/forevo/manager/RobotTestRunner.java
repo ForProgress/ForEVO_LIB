@@ -18,26 +18,26 @@ public class RobotTestRunner {
 	public RobotTestRunner(Class executor) {
 		 projectPath = executor.getProtectionDomain().getCodeSource().getLocation().getPath();
 		 projectPath = projectPath.substring(1, projectPath.indexOf("/bin/"));
-		 libs.add(System.getenv("FOREVO") + "/drivers/robotframework-2.8.5.jar");
+		 libs.add(System.getenv("FOREVO") + "/drivers/robotframework-2.9.2.jar");
+		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-java-2.48.2.jar");
 		 libs.add(System.getenv("FOREVO") + "/lib/ForEVO_LIB.jar");
 		 libs.add(System.getenv("FOREVO") + "/lib/ForEvo_XML.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/sikulixapi.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/jacob.jar");
-		 libs.add(System.getenv("FOREVO") + "/drivers/AutoItX4Java.jar");
-		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-java-2.45.0.jar");
+		 libs.add(System.getenv("FOREVO") + "/drivers/AutoItX4Java.jar");		
 		 libs.add(System.getenv("FOREVO") + "/drivers/mysql-connector-java-5.1.35-bin.jar");
-		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-server-standalone-2.46.0.jar");
+		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-server-standalone-2.48.2.jar");
 	}
 	
 	public void runSuite(String suiteName) {
-		String keywordsPath = projectPath + "/bin";
+		String keywordsPath = "\""+ projectPath + "/bin\"";
 		String projectName = projectPath.split("/")[projectPath.split("/").length - 1];
 		String suitePath = projectPath + "/robot/" + projectName + "/" + suiteName;
 		
-		String command = "java -cp \"" + keywordsPath;
-		for (String lib : libs)
-			command += ";" + lib; 
-		command += "\" org.robotframework.RobotFramework " + suitePath;
+		String command = "java -cp " + keywordsPath;
+		for (String lib : libs)			
+			command += ";\"" + lib.replace("\\", "/")+"\""; 
+		command += " org.robotframework.RobotFramework " + suitePath;
 		
 		final Process process;
 		try {

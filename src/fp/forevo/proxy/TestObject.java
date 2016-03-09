@@ -5,16 +5,23 @@ import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.sikuli.script.FindFailed;
 import org.sikuli.script.Match;
 import org.sikuli.script.Pattern;
 import org.sikuli.script.Region;
+import org.testng.TimeBombSkipException;
+
+import com.gargoylesoftware.htmlunit.Cache;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
@@ -143,9 +150,11 @@ public class TestObject {
 		WebElement element = MasterScript.browser.findElement(by());
 		String border = element.getCssValue("arguments[0].style.border");
 		if (MasterScript.browser instanceof JavascriptExecutor) {
-			((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].style.border='3px solid red'", element);
+			((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].style.border='3px solid red'",
+					element);
 			MasterScript.sleep(1);
-			((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].style.border='" + border + "'", element);
+			((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].style.border='" + border + "'",
+					element);
 		}
 	}
 
@@ -173,8 +182,8 @@ public class TestObject {
 				} else {
 					match = winRegion.findText(xImage.getOcrText());
 					match.highlight(1);
-					Region point = new Region(match.getX() + xImage.getOffsetX() + match.getW() / 2, match.getY() + xImage.getOffsetY() + match.getH() / 2, 1,
-							1);
+					Region point = new Region(match.getX() + xImage.getOffsetX() + match.getW() / 2,
+							match.getY() + xImage.getOffsetY() + match.getH() / 2, 1, 1);
 					point.highlight(1);
 				}
 			} catch (FindFailed e) {
@@ -215,7 +224,8 @@ public class TestObject {
 					window.getRegion().click(pattern);
 				} else {
 					Match txtArea = window.getRegion().findText(xImage.getOcrText());
-					Region point = new Region(txtArea.x + xImage.getOffsetX() + txtArea.w / 2, txtArea.y + xImage.getOffsetY() + txtArea.h / 2, 1, 1);
+					Region point = new Region(txtArea.x + xImage.getOffsetX() + txtArea.w / 2,
+							txtArea.y + xImage.getOffsetY() + txtArea.h / 2, 1, 1);
 					point.click();
 				}
 			} catch (FindFailed e) {
@@ -227,16 +237,51 @@ public class TestObject {
 		}
 	}
 
-	public boolean checkIfExist() {
+	/**
+	 * click at the object
+	 * 
+	 * @throws TafException
+	 * @throws FindFailed
+	 */
+	public void mouseOver() throws TafException {
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER:
-			if (MasterScript.browser.findElement(by()) != null) {
-				return true;
-			} else {
+			//waitForVisible();
+			// MasterScript.browser.findElement(by()).click();
+			WebElement element = MasterScript.browser.findElement(by());
+			((JavascriptExecutor) MasterScript.browser).executeScript("arguments[0].scrollIntoView(false);", element);
+			Actions action = new Actions(MasterScript.browser);
+			action.moveToElement(element).build().perform();			
+			break;
+		case AUTO_IT:
+
+			break;
+		case SIKULI:
+
+			break;
+		default:
+			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
+		}
+	}
+
+	
+	
+	
+	
+	public boolean checkIfExist(int maxSec)  {
+		switch (xTestObject.getDriverName()) {
+		case WEB_DRIVER:
+			try {
+				MasterScript.browser.manage().timeouts().implicitlyWait(maxSec, TimeUnit.SECONDS);
+				MasterScript.browser.findElement(by());
+				MasterScript.browser.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS);
+			} catch (TimeoutException | NoSuchElementException e) {
 				return false;
 			}
+			return true;		
 		case AUTO_IT:
-			boolean status = MasterScript.autoIt.controlFocus(window.getXWindow().getTarget(), "", xTestObject.getTarget());
+			boolean status = MasterScript.autoIt.controlFocus(window.getXWindow().getTarget(), "",
+					xTestObject.getTarget());
 			return status;
 		case SIKULI:
 			XImage xImage = getImage();
@@ -246,7 +291,33 @@ public class TestObject {
 			} else {
 				return sikuli_FindText(window.getRegion(), xImage.getOcrText()) != null;
 			}
-
+		}
+		return false;
+	}
+	
+	public boolean checkIfExist()  {
+		switch (xTestObject.getDriverName()) {
+		case WEB_DRIVER:
+			try {	
+				MasterScript.browser.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
+				MasterScript.browser.findElement(by());
+				MasterScript.browser.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS);
+			} catch (TimeoutException | NoSuchElementException e) {
+				return false;
+			}
+			return true;		
+		case AUTO_IT:
+			boolean status = MasterScript.autoIt.controlFocus(window.getXWindow().getTarget(), "",
+					xTestObject.getTarget());
+			return status;
+		case SIKULI:
+			XImage xImage = getImage();
+			Pattern pattern = getPattern(xImage);
+			if (xImage.isImgRecognition()) {
+				return (window.getRegion().exists(pattern) != null);
+			} else {
+				return sikuli_FindText(window.getRegion(), xImage.getOcrText()) != null;
+			}
 		}
 		return false;
 	}
@@ -472,10 +543,12 @@ public class TestObject {
 
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER:
-			if (MasterScript.browser.findElement(by()) != null)
-				return true;
-			else
+			try {			
+				MasterScript.browser.findElement(by());
+			} catch (TimeoutException | NoSuchElementException e) {
 				return false;
+			}
+			return true;
 		case AUTO_IT:
 			return MasterScript.autoIt.controlEnable(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 		case SIKULI:
@@ -498,7 +571,7 @@ public class TestObject {
 	protected By by() {
 		String target = xTestObject.getTarget();
 		if (target.contains("=")) {
-			String[] loc = xTestObject.getTarget().split("=");
+			String[] loc = xTestObject.getTarget().split("=", 2);
 			switch (loc[0]) {
 			case "id":
 				return By.id(loc[1]);
@@ -585,7 +658,8 @@ public class TestObject {
 					Region objRegion = window.getRegion().find(pattern);
 					if (xImage.getShift() != null) {
 						Rectangle shift = getRectangle(xImage.getShift());
-						Region shiftRegion = new Region(objRegion.x + shift.x, objRegion.y + shift.y, shift.width, shift.height);
+						Region shiftRegion = new Region(objRegion.x + shift.x, objRegion.y + shift.y, shift.width,
+								shift.height);
 						return shiftRegion.text();
 					} else {
 						return objRegion.text();
@@ -594,7 +668,8 @@ public class TestObject {
 					Region txtRegion = window.getRegion().findText(xImage.getOcrText());
 					if (xImage.getShift() != null) {
 						Rectangle shift = getRectangle(xImage.getShift());
-						Region shiftRegion = new Region(txtRegion.x + shift.x, txtRegion.y + shift.y, shift.width, shift.height);
+						Region shiftRegion = new Region(txtRegion.x + shift.x, txtRegion.y + shift.y, shift.width,
+								shift.height);
 						return shiftRegion.text();
 					} else {
 						return txtRegion.text();
