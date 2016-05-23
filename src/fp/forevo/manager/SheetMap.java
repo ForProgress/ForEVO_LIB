@@ -1,6 +1,6 @@
 package fp.forevo.manager;
 
-public enum SheetMap {
+public enum SheetRepo {
 	
 
 	SOURCE("C:/Workspace/XML Data Test/src/test", "Dane.xls", "Arkusz1"),	
@@ -11,7 +11,7 @@ public enum SheetMap {
     private final String fileName;
     private final String sheetName;
 
-    private SheetMap(final String filePath, final String fileName, final String sheetName) {
+    private SheetRepo(final String filePath, final String fileName, final String sheetName) {
         this.filePath = filePath;
         this.fileName = fileName;
         this.sheetName = sheetName;

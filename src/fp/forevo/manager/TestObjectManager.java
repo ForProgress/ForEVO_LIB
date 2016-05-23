@@ -20,21 +20,21 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 
-import fp.forevo.xml.map.ObjectFactory;
-import fp.forevo.xml.map.XDriverName;
-import fp.forevo.xml.map.XImage;
-import fp.forevo.xml.map.XTestObject;
-import fp.forevo.xml.map.XTestObjectMap;
-import fp.forevo.xml.map.XWindow;
+import fp.forevo.xml.repo.ObjectFactory;
+import fp.forevo.xml.repo.XDriverName;
+import fp.forevo.xml.repo.XImage;
+import fp.forevo.xml.repo.XTestObject;
+import fp.forevo.xml.repo.XTestObjectRepo;
+import fp.forevo.xml.repo.XWindow;
 import fp.forevo.xml.project.XProject;
 import fp.forevo.xml.project.XTag;
 
 public class TestObjectManager {
 
-	private XTestObjectMap testObjectMap = null;
+	private XTestObjectRepo testObjectRepo = null;
 	private String projectPath = null; // np.
 										// C:\Workspace\ExampleAutomationProject\
-	private String mapName = null; // np. HomePage
+	private String repoName = null; // np. HomePage
 	private boolean changed = false;
 	private List<XTag> tagList = null; // Tag list defined for project
 
@@ -46,16 +46,16 @@ public class TestObjectManager {
 	 *            C:\Workspace\ExampleAutomationProject\src\myappl\modules\
 	 *            HomePage.java
 	 * @param parentClass
-	 *            - klasa po której ma dziedziczyc klasa mapy. Domyslnie jest
+	 *            - klasa po której ma dziedziczyc klasa repozytorium. Domyslnie jest
 	 *            "fp.forevo.manager.MasterScript"
 	 */
 	public TestObjectManager(File scriptClassFile, String parentClass) {
 		this.projectPath = scriptClassFile.getAbsolutePath().replace("\\", "/").split("/src")[0].replace("/", "\\");
 		ObjectFactory factory = new ObjectFactory();
-		testObjectMap = factory.createXTestObjectMap();
-		testObjectMap.setScriptClassPath("src" + scriptClassFile.getAbsolutePath().split("src")[1]);
-		testObjectMap.setParentClassName(parentClass);
-		setMapName(scriptClassFile);
+		testObjectRepo = factory.createXTestObjectRepo();
+		testObjectRepo.setScriptClassPath("src" + scriptClassFile.getAbsolutePath().split("src")[1]);
+		testObjectRepo.setParentClassName(parentClass);
+		setRepoName(scriptClassFile);
 	}
 
 	/**
@@ -64,24 +64,24 @@ public class TestObjectManager {
 	 * @param projectPath
 	 *            - Œcie¿ka do projektu np.
 	 *            C:\Workspace\ExampleAutomationProject
-	 * @param mapFile
+	 * @param repoFile
 	 */
-	public TestObjectManager(String projectPath, String mapPath) {
+	public TestObjectManager(String projectPath, String repoPath) {
 		this.projectPath = projectPath;
 		try {
-			JAXBContext jaxbContext = JAXBContext.newInstance(XTestObjectMap.class);
+			JAXBContext jaxbContext = JAXBContext.newInstance(XTestObjectRepo.class);
 			Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-			File mapa = new File(projectPath + "\\" + mapPath);
-			//testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(new File(projectPath + "\\" + mapPath));
-			if (mapa.exists()) {				
-				testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(mapa);
+			File repoFile = new File(projectPath + "\\" + repoPath);
+			//testObjectRepo = (XTestObjectRepo) unmarshaller.unmarshal(new File(projectPath + "\\" + repoPath));
+			if (repoFile.exists()) {				
+				testObjectRepo = (XTestObjectRepo) unmarshaller.unmarshal(repoFile);
 			} else {				
 				ClassLoader CLDR = this.getClass().getClassLoader();
-				InputStream is = CLDR.getResourceAsStream("" + mapPath);
-				testObjectMap = (XTestObjectMap) unmarshaller.unmarshal(is);
+				InputStream is = CLDR.getResourceAsStream("" + repoPath);
+				testObjectRepo = (XTestObjectRepo) unmarshaller.unmarshal(is);
 			}
 			
-			setMapName(mapPath);
+			setRepoName(repoPath);
 			this.changed = false;
 
 			// Wczytanie listy tagów
@@ -91,7 +91,7 @@ public class TestObjectManager {
 			File projectTaf = new File(projectPath + "\\project.taf");			
 			//XProject project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));
 			XProject project = null;
-			if (mapa.exists()) {				
+			if (repoFile.exists()) {				
 				project = (XProject) unmarshaller.unmarshal(new File(projectPath + "\\project.taf"));
 			} else {				
 				ClassLoader CLDR = this.getClass().getClassLoader();
@@ -114,36 +114,36 @@ public class TestObjectManager {
 		return projectPath.replace("/", "\\");
 	}
 
-	public XTestObjectMap getTestObjectMap() {
-		return testObjectMap;
+	public XTestObjectRepo getTestObjectRepo() {
+		return testObjectRepo;
 	}
 
 	/**
-	 * Ustawia nazwe mapy
+	 * Ustawia nazwe repozytorium
 	 * 
 	 * @param classPath
 	 */
-	private void setMapName(String classPath) {
+	private void setRepoName(String classPath) {
 		String[] temp = classPath.replace("\\", "/").split("/");
-		this.mapName = temp[temp.length - 1].split(".map")[0];
+		this.repoName = temp[temp.length - 1].split(".repo")[0];
 	}
 
-	private void setMapName(File scriptClassFile) {
+	private void setRepoName(File scriptClassFile) {
 		String[] temp = scriptClassFile.getAbsolutePath().replace("\\", "/").split("/");
-		this.mapName = temp[temp.length - 1].split(".java")[0];
+		this.repoName = temp[temp.length - 1].split(".java")[0];
 	}
 
 	/**
-	 * @return relative path for map directory
+	 * @return relative path for repo directory
 	 */
 	public String getResPath() {
-		int i = testObjectMap.getScriptClassPath().lastIndexOf("\\");
-		String res = testObjectMap.getScriptClassPath().substring(0, i).replace("\\", ".");
+		int i = testObjectRepo.getScriptClassPath().lastIndexOf("\\");
+		String res = testObjectRepo.getScriptClassPath().substring(0, i).replace("\\", ".");
 		if (res.equals("src"))
 			res = "res";
 		else
 			res = res.replace("src.", "res\\");
-		String name = testObjectMap.getScriptClassPath().substring(i).replace(".java", "").replace("\\", "");
+		String name = testObjectRepo.getScriptClassPath().substring(i).replace(".java", "").replace("\\", "");
 		return res + "\\" + name;
 	}
 
@@ -151,16 +151,16 @@ public class TestObjectManager {
 		return getProjectPath() + "\\" + getResPath();
 	}
 
-	public String getMapPath() {
-		return getResPath() + "\\" + getMapName() + ".map";
+	public String getRepoPath() {
+		return getResPath() + "\\" + getRepoName() + ".repo";
 	}
 
 	public String getScriptClassPath() {
-		return testObjectMap.getScriptClassPath();
+		return testObjectRepo.getScriptClassPath();
 	}
 
-	public String getMapClassPath() {
-		return getMapPackagePath() + "\\" + getMapName() + "Map.java";
+	public String getRepoClassPath() {
+		return getRepoPackagePath() + "\\" + getRepoName() + "Repo.java";
 	}
 
 	public String getScriptPackagePath() {
@@ -178,25 +178,25 @@ public class TestObjectManager {
 		return temp1;
 	}
 
-	public String getMapPackageName() {
-		return getScriptPackageName() + ".maps";
+	public String getRepoPackageName() {
+		return getScriptPackageName() + ".repos";
 	}
 
-	public String getMapPackagePath() {
-		return getScriptPackagePath() + "\\maps";
+	public String getRepoPackagePath() {
+		return getScriptPackagePath() + "\\repos";
 	}
 
-	public String getMapName() {
-		return mapName;
+	public String getRepoName() {
+		return repoName;
 	}
 
-	public void saveTestObjectMap() {
+	public void saveTestObjectRepo() {
 		JAXBContext jaxbContext;
-		String filePath = getAbsoluteResPath() + "\\" + getMapName() + ".map";
+		String filePath = getAbsoluteResPath() + "\\" + getRepoName() + ".repo";
 		try {
-			jaxbContext = JAXBContext.newInstance(XTestObjectMap.class);
+			jaxbContext = JAXBContext.newInstance(XTestObjectRepo.class);
 			Marshaller marshaller = jaxbContext.createMarshaller();
-			marshaller.marshal(testObjectMap, new File(filePath));
+			marshaller.marshal(testObjectRepo, new File(filePath));
 			setChanged(false);
 		} catch (JAXBException e) {
 			e.printStackTrace();
@@ -204,7 +204,7 @@ public class TestObjectManager {
 	}
 
 	public XWindow getXWindow(String name) {
-		for (XWindow w : testObjectMap.getWindow()) {
+		for (XWindow w : testObjectRepo.getWindow()) {
 			if (w.getName().equals(name)) {
 				return w;
 			}
@@ -239,18 +239,18 @@ public class TestObjectManager {
 				String line = lines.get(i);
 				if (line.startsWith("package") && !imp) {
 					imp = true;
-					lines.set(i, line + "\n\nimport " + getMapPackageName() + "." + getMapName() + "Map;\n");
+					lines.set(i, line + "\n\nimport " + getRepoPackageName() + "." + getRepoName() + "Repo;\n");
 				}
 				if (line.contains("public class")) {
-					line = "public class " + name + " extends " + name + "Map {";
+					line = "public class " + name + " extends " + name + "Repo {";
 					lines.set(i, line);
 				}
 			}
 
 			// Jesli skrypt nie jest w pakiecie to musimy w inny sposob dodac
-			// importowanie skryptu mapy
+			// importowanie skryptu repozytorium
 			if (imp == false) {
-				lines.set(0, "import maps." + getMapName() + "Map;\n\n" + lines.get(0));
+				lines.set(0, "import repos." + getRepoName() + "Repo;\n\n" + lines.get(0));
 			}
 			FileUtils.writeLines(file, lines);
 		} catch (IOException e) {
@@ -258,17 +258,17 @@ public class TestObjectManager {
 		}
 	}
 
-	public void generateMapClass() {
+	public void generateRepoClass() {
 		try {
-			File file = new File(getProjectPath() + "\\" + getMapClassPath());
+			File file = new File(getProjectPath() + "\\" + getRepoClassPath());
 			BufferedWriter output = new BufferedWriter(new FileWriter(file));
 
 			if (getScriptPackageName() != null)
-				output.write("package " + getMapPackageName() + ";\n\n");
+				output.write("package " + getRepoPackageName() + ";\n\n");
 			else
-				output.write("package maps;\n\n");
+				output.write("package repos;\n\n");
 			// output.write("import java.io.File;\n");
-			output.write("import " + getTestObjectMap().getParentClassName() + ";\n");
+			output.write("import " + getTestObjectRepo().getParentClassName() + ";\n");
 			output.write("import fp.forevo.manager.TestObjectManager;\n");
 			output.write("import fp.forevo.proxy.*;\n\n");
 			output.write("/**\n");
@@ -279,16 +279,16 @@ public class TestObjectManager {
 			output.write(" * @since " + currentTime() + "\n");
 			output.write(" */\n");
 
-			output.write("public class " + getMapName() + "Map");
+			output.write("public class " + getRepoName() + "Repo");
 
-			String[] parentClassName = getTestObjectMap().getParentClassName().replace(".", ",").split(",");
-			if (getTestObjectMap().getParentClassName() != null)
+			String[] parentClassName = getTestObjectRepo().getParentClassName().replace(".", ",").split(",");
+			if (getTestObjectRepo().getParentClassName() != null)
 				output.write(" extends " + parentClassName[parentClassName.length - 1] + " {\n");
 			output.write("\n");
 			output.write("\tprivate TestObjectManager tomgr = new TestObjectManager(getProjectPath(this.getClass()), \""
-					+ getMapPath().replace("\\", "/") + "\");\n");
+					+ getRepoPath().replace("\\", "/") + "\");\n");
 			output.write("\n");
-			for (XWindow window : getTestObjectMap().getWindow()) {
+			for (XWindow window : getTestObjectRepo().getWindow()) {
 				output.write("\t/**\n\t * <b>Description:</b> "
 						+ formatDescription(getEmptyIfNull(window.getDescription())) + "\n\t */\n");
 				output.write("\tprotected Window " + window.getName() + " = getWindow(tomgr, \"" + window.getName()

@@ -50,8 +50,8 @@ public class MasterScript {
 		
 	}
 	
-	protected String getProjectPath(Class<?> mapClass) {
-		String path = mapClass.getProtectionDomain().getCodeSource().getLocation().getPath();
+	protected String getProjectPath(Class<?> repoClass) {
+		String path = repoClass.getProtectionDomain().getCodeSource().getLocation().getPath();
 		//System.out.println("Path: " + path);
 		if(path.endsWith(".jar")) {  // get resource from JAR file
 			
@@ -182,42 +182,42 @@ public class MasterScript {
 	public Window getWindow(TestObjectManager tom, String windowName) {
 		Window window = new Window(this, tom, windowName);
 		if (window.getXWindow() == null)
-			log.fail(windowName + ": object does not exist in xml map file!");
+			log.fail(windowName + ": object does not exist in xml repo file!");
 		return window;
 	}
 	
 	public Button getButton(TestObjectManager tom, Window window, String testObjectName) {
 		Button button = new Button(this, tom, window, testObjectName);
 		if (!button.isNotNull())
-			log.fail(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml repo file!");
 		return button;
 	}
 	
 	public Element getElement(TestObjectManager tom, Window window, String testObjectName){
 		Element element = new Element(this, tom, window, testObjectName);
 		if (!element.isNotNull())
-			log.fail(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml repo file!");
 		return element;
 	}
 	
 	public TextBox getTextBox(TestObjectManager tom, Window window, String testObjectName) {
 		TextBox textBox = new TextBox(this, tom, window, testObjectName);
 		if (!textBox.isNotNull())
-			log.fail(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml repo file!");
 		return textBox;
 	}
 	
 	public Image getImage(TestObjectManager tom, Window window, String testObjectName) {
 		Image image = new Image(this, tom, window, testObjectName);
 		if (!image.isNotNull())
-			log.fail(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml repo file!");
 		return image;
 	}
 	
 	public ComboBox getComboBox(TestObjectManager tom, Window window, String testObjectName){
 		ComboBox combobox = new ComboBox(this, tom, window, testObjectName);
 		if(!combobox.isNotNull())
-			log.fail(testObjectName + ": object does not exist in xml map file!");
+			log.fail(testObjectName + ": object does not exist in xml repo file!");
 		return combobox;
 	}
 	

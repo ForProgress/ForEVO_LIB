@@ -7,7 +7,7 @@ import org.sikuli.script.Region;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TestObjectManager;
-import fp.forevo.xml.map.XImage;
+import fp.forevo.xml.repo.XImage;
 
 public class TextBox extends TestObject {
 

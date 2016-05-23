@@ -288,10 +288,10 @@ public class DataManager {
 	
 	/**
 	 * Funkcja importuje arkusz z zewnêtrznego pliku do lokalnego pliku danych
-	 * @param sheetMap
+	 * @param sheetRepo
 	 */
-	public void xlsImportSheet(SheetMap sheetMap) {
-		xlsImportSheet(sheetMap.getFilePath(), sheetMap.getSheetName());
+	public void xlsImportSheet(SheetRepo sheetRepo) {
+		xlsImportSheet(sheetRepo.getFilePath(), sheetRepo.getSheetName());
 	}
 	
 	/**
@@ -320,10 +320,10 @@ public class DataManager {
 	
 	/**
 	 * Funkcja ustawia nazwê do aktualnie u¿ywanego arkusza w lokalnym workbooku
-	 * @param sheetMap - nazwa arkusza
+	 * @param sheetRepo - nazwa arkusza
 	 */
-	public void xlsSetCurrentSheet(SheetMap sheetMap) {
-		this.currentSheet = sheetMap.getSheetName();
+	public void xlsSetCurrentSheet(SheetRepo sheetRepo) {
+		this.currentSheet = sheetRepo.getSheetName();
 	}
 	
 	/**
@@ -378,9 +378,9 @@ public class DataManager {
 	 * @param sheetName
 	 * @param rowId
 	 */
-	public void xlsSetCurrentSheetRow(SheetMap sheetMap, int rowId) {
-		xlsImportSheet(sheetMap);
-		xlsSetCurrentSheet(sheetMap);
+	public void xlsSetCurrentSheetRow(SheetRepo sheetRepo, int rowId) {
+		xlsImportSheet(sheetRepo);
+		xlsSetCurrentSheet(sheetRepo);
 		xlsSetCurrentRow(rowId);
 	}
 	

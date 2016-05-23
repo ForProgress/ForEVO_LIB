@@ -26,8 +26,8 @@ import com.gargoylesoftware.htmlunit.Cache;
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
 import fp.forevo.manager.TestObjectManager;
-import fp.forevo.xml.map.XImage;
-import fp.forevo.xml.map.XTestObject;
+import fp.forevo.xml.repo.XImage;
+import fp.forevo.xml.repo.XTestObject;
 import fp.forevo.xml.project.XTag;
 
 public class TestObject {
