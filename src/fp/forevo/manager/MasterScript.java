@@ -187,9 +187,12 @@ public class MasterScript {
 	}
 	
 	public Button getButton(TestObjectManager tom, Window window, String testObjectName) {
+		
 		Button button = new Button(this, tom, window, testObjectName);
-		if (!button.isNotNull())
+		if (!button.isNotNull()){
 			log.fail(testObjectName + ": object does not exist in xml map file!");
+			
+		}
 		return button;
 	}
 	

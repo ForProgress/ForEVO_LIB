@@ -199,6 +199,7 @@ public class TestObject {
 	 * @throws FindFailed
 	 */
 	public void click() throws TafException {
+	
 		switch (xTestObject.getDriverName()) {
 		case WEB_DRIVER:
 			waitForVisible();
@@ -211,8 +212,8 @@ public class TestObject {
 		case AUTO_IT:
 			MasterScript.autoIt.controlClick(window.getXWindow().getTarget(), "", xTestObject.getTarget());
 			break;
-		case SIKULI:
-			XImage xImage = getImage();
+		case SIKULI:			
+			XImage xImage = getImage();			
 			if (xImage.getOffsetX() == null)
 				xImage.setOffsetX(0);
 			if (xImage.getOffsetY() == null)

@@ -20,13 +20,14 @@ public class RobotTestRunner {
 		 projectPath = projectPath.substring(1, projectPath.indexOf("/bin/"));
 		 libs.add(System.getenv("FOREVO") + "/drivers/robotframework-2.9.2.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-java-2.48.2.jar");
+		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-server-standalone-2.48.2.jar");
 		 libs.add(System.getenv("FOREVO") + "/lib/ForEVO_LIB.jar");
-		 libs.add(System.getenv("FOREVO") + "/lib/ForEvo_XML.jar");
+		 libs.add(System.getenv("FOREVO") + "/lib/ForEVO_XML.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/sikulixapi.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/jacob.jar");
 		 libs.add(System.getenv("FOREVO") + "/drivers/AutoItX4Java.jar");		
 		 libs.add(System.getenv("FOREVO") + "/drivers/mysql-connector-java-5.1.35-bin.jar");
-		 libs.add(System.getenv("FOREVO") + "/drivers/selenium-server-standalone-2.48.2.jar");
+		 
 	}
 	
 	public void runSuite(String suiteName) {
