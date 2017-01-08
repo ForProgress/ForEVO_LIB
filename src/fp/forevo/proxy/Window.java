@@ -11,7 +11,7 @@ import org.sikuli.script.Region;
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
 import fp.forevo.manager.TestObjectManager;
-import fp.forevo.xml.map.XWindow;
+import fp.forevo.xml.repo.XWindow;
 
 public class Window {
 
