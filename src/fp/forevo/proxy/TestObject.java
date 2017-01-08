@@ -15,13 +15,15 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.sikuli.remoteinterfaces.entities.Image;
 import org.sikuli.script.FindFailed;
+import org.sikuli.script.ImageFind;
 import org.sikuli.script.Match;
 import org.sikuli.script.Pattern;
 import org.sikuli.script.Region;
 import org.testng.TimeBombSkipException;
 
-import com.gargoylesoftware.htmlunit.Cache;
+//import com.gargoylesoftware.htmlunit.Cache;
 
 import fp.forevo.manager.MasterScript;
 import fp.forevo.manager.TafException;
@@ -45,7 +47,7 @@ public class TestObject {
 		this.window = window;
 		this.xTestObject = xTestObject;
 		this.ms = ms;
-		this.tom = tom;
+		this.tom = tom;		
 		this.resDir = resDir;
 	}
 
@@ -56,6 +58,7 @@ public class TestObject {
 	public String getImagePath() {
 		switch (xTestObject.getDriverName()) {
 		case SIKULI:
+			
 			return getImage().getFileName();
 		default:
 			return null;
@@ -78,6 +81,7 @@ public class TestObject {
 					return window.getRegion().findAll(pattern);
 				} else {
 					return window.getRegion().findAllText(xImage.getOcrText());
+					
 				}
 			} catch (FindFailed e) {
 				e.printStackTrace();
@@ -237,6 +241,34 @@ public class TestObject {
 			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
 		}
 	}
+	
+	/** 
+	 * getAtrribute
+	 *
+	 */
+	
+	public String getAttribute(String nameAttribute) throws TafException{
+		switch (xTestObject.getDriverName()) {
+		case WEB_DRIVER:
+			waitForVisible();
+			
+			WebElement element = MasterScript.browser.findElement(by());
+			return element.getAttribute(nameAttribute);			
+			
+			
+		case AUTO_IT:
+
+			break;
+		case SIKULI:
+
+			break;
+		default:
+			System.err.println("Unsupported tool name " + xTestObject.getDriverName());
+						
+		}
+		return null;
+		
+	}
 
 	/**
 	 * click at the object
@@ -341,7 +373,7 @@ public class TestObject {
 	}
 
 	/** Returns Sikuli object pattern */
-	protected Pattern getPattern(XImage xImage) {
+	public Pattern getPattern(XImage xImage) {
 		Pattern pattern = new Pattern(resDir + "\\" + xImage.getFileName());
 		if (xImage.getSimilarity() != null) {
 			pattern = pattern.similar(xImage.getSimilarity());
